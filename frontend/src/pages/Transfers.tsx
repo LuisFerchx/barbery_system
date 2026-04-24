@@ -14,11 +14,11 @@ export default function Transfers() {
   const [showModal, setShowModal] = useState(false)
   const [form, setForm] = useState({ barber_id: '', recipient_name: '', amount: '', bank: 'Pichincha', reference: '', note: '' })
 
-  const fetch = () => {
+  const fetchTransfers = () => {
     barbersApi.listTransfers().then(r => setTransfers(r.data))
     barbersApi.list().then(r => setBarbers(r.data))
   }
-  useEffect(() => { fetch() }, [])
+  useEffect(() => { fetchTransfers() }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -26,72 +26,81 @@ export default function Transfers() {
     await barbersApi.createTransfer(payload)
     toast.success('Transferencia registrada')
     setShowModal(false)
-    fetch()
+    fetchTransfers()
   }
 
   const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }))
 
   const columns = [
-    { key: 'date', header: 'Fecha', render: (r: BankTransfer) => fmt.date(r.date) },
+    { key: 'date',           header: 'Fecha',     render: (r: BankTransfer) => fmt.date(r.date) },
     { key: 'recipient_name', header: 'Receptor' },
-    { key: 'bank', header: 'Banco' },
-    { key: 'amount', header: 'Monto', render: (r: BankTransfer) => <span className="font-medium">{fmt.money(r.amount)}</span> },
+    { key: 'bank',           header: 'Banco' },
+    {
+      key: 'amount', header: 'Monto',
+      render: (r: BankTransfer) => (
+        <span className="font-semibold" style={{ color: 'var(--gold-400)' }}>{fmt.money(r.amount)}</span>
+      )
+    },
     { key: 'reference', header: 'Referencia', render: (r: BankTransfer) => r.reference || '-' },
-    { key: 'note', header: 'Nota', render: (r: BankTransfer) => r.note || '-' },
+    { key: 'note',      header: 'Nota',        render: (r: BankTransfer) => r.note || '-' },
   ]
 
   return (
     <div className="space-y-4">
       <div className="flex justify-end">
-        <button onClick={() => setShowModal(true)} className="flex items-center gap-2 bg-brand-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-brand-600">
-          <Plus size={16} /> Nueva transferencia
+        <button id="new-transfer-btn" onClick={() => setShowModal(true)} className="btn-gold">
+          <Plus size={15} /> Nueva transferencia
         </button>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200">
+      <div className="card p-0 overflow-hidden">
         <Table columns={columns} data={transfers} emptyText="Sin transferencias registradas" />
       </div>
 
       <Modal open={showModal} onClose={() => setShowModal(false)} title="Registrar transferencia">
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Barbero (opcional)</label>
-            <select value={form.barber_id} onChange={e => {
-              const b = barbers.find(b => b.id === Number(e.target.value))
-              set('barber_id', e.target.value)
-              if (b) set('recipient_name', `${b.name} ${b.lastname || ''}`.trim())
-            }} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-400">
+            <label className="label">Barbero (opcional)</label>
+            <select
+              value={form.barber_id}
+              onChange={e => {
+                const b = barbers.find(b => b.id === Number(e.target.value))
+                set('barber_id', e.target.value)
+                if (b) set('recipient_name', `${b.name} ${b.lastname || ''}`.trim())
+              }}
+              className="input-dark"
+            >
               <option value="">Sin barbero asociado</option>
               {barbers.map(b => <option key={b.id} value={b.id}>{b.name} {b.lastname || ''}</option>)}
             </select>
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Nombre receptor</label>
-            <input value={form.recipient_name} onChange={e => set('recipient_name', e.target.value)} required className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-400" />
+            <label className="label">Nombre receptor</label>
+            <input value={form.recipient_name} onChange={e => set('recipient_name', e.target.value)} required className="input-dark" />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Monto</label>
-              <input type="number" step="0.01" value={form.amount} onChange={e => set('amount', e.target.value)} required className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-400" />
+              <label className="label">Monto</label>
+              <input type="number" step="0.01" value={form.amount} onChange={e => set('amount', e.target.value)} required className="input-dark" />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Banco</label>
-              <select value={form.bank} onChange={e => set('bank', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-400">
+              <label className="label">Banco</label>
+              <select value={form.bank} onChange={e => set('bank', e.target.value)} className="input-dark">
                 {BANKS.map(b => <option key={b}>{b}</option>)}
               </select>
             </div>
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Referencia</label>
-            <input value={form.reference} onChange={e => set('reference', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-400" />
+            <label className="label">Referencia</label>
+            <input value={form.reference} onChange={e => set('reference', e.target.value)} className="input-dark" />
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Nota</label>
-            <input value={form.note} onChange={e => set('note', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-400" />
+            <label className="label">Nota</label>
+            <input value={form.note} onChange={e => set('note', e.target.value)} className="input-dark" />
           </div>
-          <div className="flex gap-3 justify-end pt-2">
-            <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50">Cancelar</button>
-            <button type="submit" className="px-4 py-2 text-sm bg-brand-500 text-white rounded-lg hover:bg-brand-600">Guardar</button>
+          <div className="flex gap-3 justify-end pt-2" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+            <button type="button" onClick={() => setShowModal(false)} className="btn-ghost">Cancelar</button>
+            <button type="submit" className="btn-gold">Guardar</button>
           </div>
         </form>
       </Modal>

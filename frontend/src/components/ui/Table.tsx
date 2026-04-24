@@ -1,5 +1,4 @@
 import { ReactNode } from 'react'
-import clsx from 'clsx'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export interface Column<T = any> {
@@ -24,33 +23,36 @@ export default function Table<T extends Record<string, any>>({
 }: Props<T>) {
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12 text-gray-400">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-500" />
+      <div className="flex items-center justify-center py-12">
+        <div
+          className="animate-spin rounded-full h-7 w-7 border-2 border-transparent"
+          style={{ borderTopColor: 'var(--gold-500)', borderRightColor: 'rgba(200,134,14,0.3)' }}
+        />
       </div>
     )
   }
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-sm">
+      <table className="table-dark">
         <thead>
-          <tr className="border-b border-gray-200">
+          <tr>
             {columns.map(col => (
-              <th key={col.key} className={clsx('px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide', col.className)}>
-                {col.header}
-              </th>
+              <th key={col.key} className={col.className}>{col.header}</th>
             ))}
           </tr>
         </thead>
         <tbody>
           {data.length === 0 ? (
             <tr>
-              <td colSpan={columns.length} className="text-center py-10 text-gray-400">{emptyText}</td>
+              <td colSpan={columns.length} className="text-center py-10" style={{ color: 'var(--text-muted)' }}>
+                {emptyText}
+              </td>
             </tr>
           ) : data.map((row, i) => (
-            <tr key={String(row[keyField] ?? i)} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+            <tr key={String(row[keyField] ?? i)}>
               {columns.map(col => (
-                <td key={col.key} className={clsx('px-4 py-3 text-gray-700', col.className)}>
+                <td key={col.key} className={col.className}>
                   {col.render ? col.render(row) : String(row[col.key] ?? '')}
                 </td>
               ))}

@@ -9,8 +9,7 @@ import toast from 'react-hot-toast'
 
 type Tab = 'services' | 'products'
 
-const emptyService = { name: '', price: '', commission: '', description: '' }
-const emptyProduct = { name: '', price: '', commission: '', description: '' }
+const emptyForm = { name: '', price: '', commission: '', description: '' }
 
 export default function Catalog() {
   const [tab, setTab] = useState<Tab>('services')
@@ -19,7 +18,7 @@ export default function Catalog() {
   const [showModal, setShowModal] = useState(false)
   const [editingService, setEditingService] = useState<Service | null>(null)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
-  const [form, setForm] = useState(emptyService)
+  const [form, setForm] = useState(emptyForm)
 
   const fetchAll = () => {
     catalogApi.services().then(r => setServices(r.data))
@@ -29,7 +28,7 @@ export default function Catalog() {
 
   const openNew = () => {
     setEditingService(null); setEditingProduct(null)
-    setForm(emptyService); setShowModal(true)
+    setForm(emptyForm); setShowModal(true)
   }
   const openEditS = (s: Service) => { setEditingService(s); setEditingProduct(null); setForm({ name: s.name, price: String(s.price), commission: String(s.commission), description: s.description || '' }); setShowModal(true) }
   const openEditP = (p: Product) => { setEditingProduct(p); setEditingService(null); setForm({ name: p.name, price: String(p.price), commission: String(p.commission), description: p.description || '' }); setShowModal(true) }
@@ -56,65 +55,86 @@ export default function Catalog() {
 
   const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }))
 
+  const actionCols = (onEdit: () => void, onDel: () => void) => (
+    <div className="flex gap-1.5">
+      <button onClick={onEdit} className="btn-icon w-7 h-7"><Pencil size={12} /></button>
+      <button onClick={onDel}  className="btn-icon w-7 h-7" style={{ color: '#f87171' } as React.CSSProperties}><Trash2 size={12} /></button>
+    </div>
+  )
+
   const serviceCols = [
-    { key: 'name', header: 'Nombre' },
-    { key: 'price', header: 'Precio', render: (r: Service) => fmt.money(r.price) },
+    { key: 'name',       header: 'Nombre' },
+    { key: 'price',      header: 'Precio',   render: (r: Service) => <span style={{ color: 'var(--gold-400)' }}>{fmt.money(r.price)}</span> },
     { key: 'commission', header: 'Comisión', render: (r: Service) => fmt.money(r.commission) },
-    { key: 'actions', header: '', render: (r: Service) => (
-      <div className="flex gap-2">
-        <button onClick={() => openEditS(r)} className="p-1 text-blue-500 hover:bg-blue-50 rounded"><Pencil size={14} /></button>
-        <button onClick={() => delService(r.id)} className="p-1 text-red-500 hover:bg-red-50 rounded"><Trash2 size={14} /></button>
-      </div>
-    )},
+    { key: 'actions',    header: '',         render: (r: Service) => actionCols(() => openEditS(r), () => delService(r.id)) },
   ]
 
   const productCols = [
-    { key: 'name', header: 'Nombre' },
-    { key: 'price', header: 'Precio', render: (r: Product) => fmt.money(r.price) },
+    { key: 'name',       header: 'Nombre' },
+    { key: 'price',      header: 'Precio',   render: (r: Product) => <span style={{ color: 'var(--gold-400)' }}>{fmt.money(r.price)}</span> },
     { key: 'commission', header: 'Comisión', render: (r: Product) => fmt.money(r.commission) },
-    { key: 'actions', header: '', render: (r: Product) => (
-      <div className="flex gap-2">
-        <button onClick={() => openEditP(r)} className="p-1 text-blue-500 hover:bg-blue-50 rounded"><Pencil size={14} /></button>
-        <button onClick={() => delProduct(r.id)} className="p-1 text-red-500 hover:bg-red-50 rounded"><Trash2 size={14} /></button>
-      </div>
-    )},
+    { key: 'actions',    header: '',         render: (r: Product) => actionCols(() => openEditP(r), () => delProduct(r.id)) },
   ]
 
   return (
     <div className="space-y-4">
-      <div className="flex gap-2 border-b border-gray-200">
+      {/* Tabs */}
+      <div className="flex gap-1" style={{ borderBottom: '1px solid rgba(255,255,255,0.07)', paddingBottom: '0' }}>
         {(['services', 'products'] as Tab[]).map(t => (
-          <button key={t} onClick={() => setTab(t)} className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${tab === t ? 'border-brand-500 text-brand-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
+          <button
+            key={t}
+            onClick={() => setTab(t)}
+            className="px-4 py-2.5 text-sm font-medium transition-all duration-200 relative"
+            style={{
+              color: tab === t ? 'var(--gold-400)' : 'var(--text-muted)',
+              borderBottom: tab === t ? '2px solid var(--gold-500)' : '2px solid transparent',
+            }}
+          >
             {t === 'services' ? 'Servicios' : 'Productos'}
           </button>
         ))}
       </div>
 
       <div className="flex justify-end">
-        <button onClick={openNew} className="flex items-center gap-2 bg-brand-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-brand-600">
-          <Plus size={16} /> {tab === 'services' ? 'Nuevo servicio' : 'Nuevo producto'}
+        <button id="new-catalog-btn" onClick={openNew} className="btn-gold">
+          <Plus size={15} /> {tab === 'services' ? 'Nuevo servicio' : 'Nuevo producto'}
         </button>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200">
+      <div className="card p-0 overflow-hidden">
         {tab === 'services'
           ? <Table columns={serviceCols} data={services} />
           : <Table columns={productCols} data={products} />
         }
       </div>
 
-      <Modal open={showModal} onClose={() => setShowModal(false)} title={`${editingService || editingProduct ? 'Editar' : 'Nuevo'} ${tab === 'services' ? 'servicio' : 'producto'}`}>
+      <Modal
+        open={showModal}
+        onClose={() => setShowModal(false)}
+        title={`${editingService || editingProduct ? 'Editar' : 'Nuevo'} ${tab === 'services' ? 'servicio' : 'producto'}`}
+      >
         <form onSubmit={handleSubmit} className="space-y-4">
-          {[['name', 'Nombre', 'text'], ['price', 'Precio', 'number'], ['commission', 'Comisión', 'number'], ['description', 'Descripción', 'text']].map(([k, label, type]) => (
+          {[
+            ['name', 'Nombre', 'text'],
+            ['price', 'Precio', 'number'],
+            ['commission', 'Comisión', 'number'],
+            ['description', 'Descripción', 'text'],
+          ].map(([k, label, type]) => (
             <div key={k}>
-              <label className="block text-xs font-medium text-gray-600 mb-1">{label}</label>
-              <input type={type} step={type === 'number' ? '0.01' : undefined} value={form[k as keyof typeof form]} onChange={e => set(k, e.target.value)} required={k === 'name'}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-400" />
+              <label className="label">{label}</label>
+              <input
+                type={type}
+                step={type === 'number' ? '0.01' : undefined}
+                value={form[k as keyof typeof form]}
+                onChange={e => set(k, e.target.value)}
+                required={k === 'name'}
+                className="input-dark"
+              />
             </div>
           ))}
-          <div className="flex gap-3 justify-end pt-2">
-            <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50">Cancelar</button>
-            <button type="submit" className="px-4 py-2 text-sm bg-brand-500 text-white rounded-lg hover:bg-brand-600">Guardar</button>
+          <div className="flex gap-3 justify-end pt-2" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+            <button type="button" onClick={() => setShowModal(false)} className="btn-ghost">Cancelar</button>
+            <button type="submit" className="btn-gold">Guardar</button>
           </div>
         </form>
       </Modal>

@@ -1,31 +1,63 @@
-import clsx from 'clsx'
 import { ReactNode } from 'react'
+import { TrendingUp, TrendingDown, Minus } from 'lucide-react'
 
 interface Props {
   title: string
   value: string | number
   icon: ReactNode
-  color?: 'green' | 'blue' | 'yellow' | 'red' | 'purple'
+  color?: 'gold' | 'green' | 'blue' | 'red' | 'purple'
   subtitle?: string
+  trend?: number // positive = up, negative = down
 }
 
-const colors = {
-  green: 'bg-green-50 text-green-600',
-  blue: 'bg-blue-50 text-blue-600',
-  yellow: 'bg-yellow-50 text-yellow-600',
-  red: 'bg-red-50 text-red-600',
-  purple: 'bg-purple-50 text-purple-600',
+const iconColors: Record<NonNullable<Props['color']>, string> = {
+  gold:   'rgba(200,134,14,0.15)',
+  green:  'rgba(34,197,94,0.1)',
+  blue:   'rgba(59,130,246,0.1)',
+  red:    'rgba(239,68,68,0.1)',
+  purple: 'rgba(168,85,247,0.1)',
 }
 
-export default function StatCard({ title, value, icon, color = 'blue', subtitle }: Props) {
+const textColors: Record<NonNullable<Props['color']>, string> = {
+  gold:   '#E4A225',
+  green:  '#4ade80',
+  blue:   '#60a5fa',
+  red:    '#f87171',
+  purple: '#c084fc',
+}
+
+export default function StatCard({ title, value, icon, color = 'gold', subtitle, trend }: Props) {
+  const iconBg = iconColors[color]
+  const iconColor = textColors[color]
+
+  const TrendIcon = trend === undefined ? null : trend > 0 ? TrendingUp : trend < 0 ? TrendingDown : Minus
+  const trendColor = trend === undefined ? '' : trend > 0 ? '#4ade80' : trend < 0 ? '#f87171' : '#8a8680'
+
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-5">
-      <div className="flex items-center justify-between mb-3">
-        <p className="text-sm text-gray-500 font-medium">{title}</p>
-        <div className={clsx('p-2 rounded-lg', colors[color])}>{icon}</div>
+    <div className="card">
+      <div className="flex items-start justify-between mb-4">
+        <p className="stat-label">{title}</p>
+        <div
+          className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+          style={{ background: iconBg, color: iconColor }}
+        >
+          {icon}
+        </div>
       </div>
-      <p className="text-2xl font-bold text-gray-800">{value}</p>
-      {subtitle && <p className="text-xs text-gray-400 mt-1">{subtitle}</p>}
+
+      <p className="stat-value mb-1">{value}</p>
+
+      <div className="flex items-center gap-2 mt-2">
+        {subtitle && (
+          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{subtitle}</p>
+        )}
+        {TrendIcon && trend !== undefined && (
+          <div className="flex items-center gap-1" style={{ color: trendColor }}>
+            <TrendIcon size={12} />
+            <span className="text-xs font-medium">{Math.abs(trend)}%</span>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

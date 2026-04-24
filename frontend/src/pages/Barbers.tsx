@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Plus, Pencil, BarChart2, ChevronRight } from 'lucide-react'
+import { Plus, Pencil, BarChart2 } from 'lucide-react'
 import { barbersApi } from '../services/api'
 import Modal from '../components/ui/Modal'
 import { fmt } from '../utils/format'
@@ -18,12 +18,12 @@ export default function Barbers() {
   const [editing, setEditing] = useState<Barber | null>(null)
   const [form, setForm] = useState(emptyForm)
 
-  const fetch = async () => {
+  const fetchBarbers = async () => {
     const { data } = await barbersApi.list()
     setBarbers(data)
   }
 
-  useEffect(() => { fetch() }, [])
+  useEffect(() => { fetchBarbers() }, [])
 
   const openDashboard = async (b: Barber) => {
     setSelected(b)
@@ -52,7 +52,7 @@ export default function Barbers() {
         toast.success('Barbero creado')
       }
       setShowModal(false)
-      fetch()
+      fetchBarbers()
     } catch {
       toast.error('Error al guardar')
     }
@@ -63,78 +63,98 @@ export default function Barbers() {
   return (
     <div className="space-y-4">
       <div className="flex justify-end">
-        <button onClick={() => { setEditing(null); setForm(emptyForm); setShowModal(true) }} className="flex items-center gap-2 bg-brand-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-brand-600">
-          <Plus size={16} /> Nuevo barbero
+        <button
+          id="new-barber-btn"
+          onClick={() => { setEditing(null); setForm(emptyForm); setShowModal(true) }}
+          className="btn-gold"
+        >
+          <Plus size={15} /> Nuevo barbero
         </button>
       </div>
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {barbers.map(b => (
-          <div key={b.id} className="bg-white rounded-xl border border-gray-200 p-5">
+          <div key={b.id} className="card">
             <div className="flex items-start justify-between mb-3">
               <div>
-                <h3 className="font-semibold text-gray-800">{b.name} {b.lastname || ''}</h3>
-                <p className="text-xs text-gray-400 mt-0.5">Comisión: {b.commission_rate}%</p>
+                <h3 className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>
+                  {b.name} {b.lastname || ''}
+                </h3>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                  Comisión: {b.commission_rate}%
+                </p>
               </div>
-              <span className={`text-xs px-2 py-0.5 rounded-full ${b.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+              <span className={b.is_active ? 'badge-success' : 'badge-danger'}>
                 {b.is_active ? 'Activo' : 'Inactivo'}
               </span>
             </div>
-            {b.phone && <p className="text-xs text-gray-500 mb-3">{b.phone}</p>}
+            {b.phone && (
+              <p className="text-xs mb-4" style={{ color: 'var(--text-secondary)' }}>{b.phone}</p>
+            )}
             <div className="flex gap-2">
-              <button onClick={() => openDashboard(b)} className="flex-1 flex items-center justify-center gap-1 py-1.5 text-xs border border-gray-200 rounded-lg hover:bg-gray-50">
+              <button
+                onClick={() => openDashboard(b)}
+                className="btn-ghost flex-1 justify-center text-xs py-1.5"
+              >
                 <BarChart2 size={13} /> Dashboard
               </button>
-              <button onClick={() => openEdit(b)} className="p-1.5 border border-gray-200 rounded-lg hover:bg-gray-50">
-                <Pencil size={13} className="text-gray-500" />
+              <button onClick={() => openEdit(b)} className="btn-icon">
+                <Pencil size={13} />
               </button>
             </div>
           </div>
         ))}
       </div>
 
+      {/* Create / Edit modal */}
       <Modal open={showModal} onClose={() => setShowModal(false)} title={editing ? 'Editar barbero' : 'Nuevo barbero'}>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             {[['name', 'Nombre'], ['lastname', 'Apellido'], ['phone', 'Teléfono'], ['email', 'Email']].map(([k, label]) => (
               <div key={k}>
-                <label className="block text-xs font-medium text-gray-600 mb-1">{label}</label>
-                <input value={form[k as keyof typeof form]} onChange={e => set(k, e.target.value)}
+                <label className="label">{label}</label>
+                <input
+                  value={form[k as keyof typeof form]}
+                  onChange={e => set(k, e.target.value)}
                   required={k === 'name'}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-400" />
+                  className="input-dark"
+                />
               </div>
             ))}
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Comisión %</label>
-              <input type="number" step="0.1" value={form.commission_rate} onChange={e => set('commission_rate', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-400" />
+              <label className="label">Comisión %</label>
+              <input
+                type="number" step="0.1"
+                value={form.commission_rate}
+                onChange={e => set('commission_rate', e.target.value)}
+                className="input-dark"
+              />
             </div>
           </div>
-          <div className="flex gap-3 justify-end pt-2">
-            <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50">Cancelar</button>
-            <button type="submit" className="px-4 py-2 text-sm bg-brand-500 text-white rounded-lg hover:bg-brand-600">Guardar</button>
+          <div className="flex gap-3 justify-end pt-2" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+            <button type="button" onClick={() => setShowModal(false)} className="btn-ghost">Cancelar</button>
+            <button type="submit" className="btn-gold">Guardar</button>
           </div>
         </form>
       </Modal>
 
-      <Modal open={showDash} onClose={() => setShowDash(false)} title={`Dashboard - ${selected?.name || ''}`} size="lg">
+      {/* Dashboard modal */}
+      <Modal open={showDash} onClose={() => setShowDash(false)} title={`Dashboard — ${selected?.name || ''}`} size="lg">
         {dashboard && (
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {[
-                { label: 'Clientes atendidos', value: dashboard.total_clients },
-                { label: 'Ventas totales', value: fmt.money(dashboard.total_sales) },
-                { label: 'Comisiones', value: fmt.money(dashboard.total_commissions) },
-                { label: 'Adelantos', value: fmt.money(dashboard.total_advances) },
-                { label: 'Saldo neto', value: fmt.money(dashboard.net_balance) },
-                { label: 'Transferencias', value: fmt.money(dashboard.total_bank_transfers) },
-              ].map(({ label, value }) => (
-                <div key={label} className="bg-gray-50 rounded-lg p-3">
-                  <p className="text-xs text-gray-500">{label}</p>
-                  <p className="text-lg font-bold text-gray-800 mt-0.5">{value}</p>
-                </div>
-              ))}
-            </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {[
+              { label: 'Clientes atendidos', value: dashboard.total_clients },
+              { label: 'Ventas totales',     value: fmt.money(dashboard.total_sales) },
+              { label: 'Comisiones',         value: fmt.money(dashboard.total_commissions) },
+              { label: 'Adelantos',          value: fmt.money(dashboard.total_advances) },
+              { label: 'Saldo neto',         value: fmt.money(dashboard.net_balance) },
+              { label: 'Transferencias',     value: fmt.money(dashboard.total_bank_transfers) },
+            ].map(({ label, value }) => (
+              <div key={label} className="card-sm">
+                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{label}</p>
+                <p className="text-lg font-bold mt-1" style={{ color: 'var(--text-primary)' }}>{value}</p>
+              </div>
+            ))}
           </div>
         )}
       </Modal>

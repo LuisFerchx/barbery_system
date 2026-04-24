@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -6,8 +8,269 @@
   * {
     box-sizing: border-box;
   }
+
+  :root {
+    --gold-400: #E4A225;
+    --gold-500: #C8860E;
+    --gold-600: #A3690A;
+    --surface-0: #080808;
+    --surface-1: #111111;
+    --surface-2: #1a1a1a;
+    --surface-3: #222222;
+    --surface-border: rgba(255,255,255,0.07);
+    --text-primary: #f0ede8;
+    --text-secondary: #8a8680;
+    --text-muted: #4a4845;
+  }
+
+  html, body, #root {
+    height: 100%;
+  }
+
   body {
     font-family: 'Inter', system-ui, sans-serif;
-    @apply text-gray-800 bg-gray-50;
+    background-color: var(--surface-0);
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--surface-1);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--surface-3);
+    border-radius: 2px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--gold-600);
+  }
+
+  /* Selection */
+  ::selection {
+    background: rgba(200, 134, 14, 0.3);
+    color: var(--text-primary);
+  }
+}
+
+@layer components {
+  /* ── Cards ── */
+  .card {
+    @apply rounded-2xl p-5;
+    background: var(--surface-1);
+    border: 1px solid var(--surface-border);
+    transition: border-color 0.2s ease;
+  }
+  .card:hover {
+    border-color: rgba(200, 134, 14, 0.2);
+  }
+
+  .card-sm {
+    @apply rounded-xl p-4;
+    background: var(--surface-2);
+    border: 1px solid var(--surface-border);
+  }
+
+  /* ── Buttons ── */
+  .btn-gold {
+    @apply inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200;
+    background: var(--gold-500);
+    color: #000;
+    box-shadow: 0 0 20px rgba(200, 134, 14, 0.25);
+  }
+  .btn-gold:hover {
+    background: var(--gold-400);
+    box-shadow: 0 0 28px rgba(228, 162, 37, 0.4);
+    transform: translateY(-1px);
+  }
+  .btn-gold:active {
+    transform: translateY(0);
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200;
+    background: var(--surface-2);
+    color: var(--text-secondary);
+    border: 1px solid var(--surface-border);
+  }
+  .btn-ghost:hover {
+    background: var(--surface-3);
+    color: var(--text-primary);
+    border-color: rgba(255,255,255,0.12);
+  }
+
+  .btn-icon {
+    @apply flex items-center justify-center w-9 h-9 rounded-xl transition-all duration-200;
+    background: var(--surface-2);
+    border: 1px solid var(--surface-border);
+    color: var(--text-secondary);
+  }
+  .btn-icon:hover {
+    background: var(--surface-3);
+    color: var(--text-primary);
+    border-color: rgba(200, 134, 14, 0.3);
+  }
+
+  /* ── Inputs ── */
+  .input-dark {
+    @apply w-full px-3.5 py-2.5 rounded-xl text-sm transition-all duration-200 outline-none;
+    background: var(--surface-2);
+    border: 1px solid var(--surface-border);
+    color: var(--text-primary);
+    caret-color: var(--gold-400);
+  }
+  .input-dark::placeholder {
+    color: var(--text-muted);
+  }
+  .input-dark:focus {
+    border-color: rgba(200, 134, 14, 0.5);
+    box-shadow: 0 0 0 3px rgba(200, 134, 14, 0.1);
+  }
+
+  /* ── Labels ── */
+  .label {
+    @apply block text-xs font-medium mb-1.5;
+    color: var(--text-secondary);
+    letter-spacing: 0.02em;
+  }
+
+  /* ── Badges ── */
+  .badge-gold {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold;
+    background: rgba(200, 134, 14, 0.15);
+    color: var(--gold-400);
+    border: 1px solid rgba(200, 134, 14, 0.25);
+  }
+
+  .badge-success {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold;
+    background: rgba(34, 197, 94, 0.1);
+    color: #4ade80;
+    border: 1px solid rgba(34, 197, 94, 0.2);
+  }
+
+  .badge-danger {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold;
+    background: rgba(239, 68, 68, 0.1);
+    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.2);
+  }
+
+  /* ── Table ── */
+  .table-dark {
+    @apply w-full text-sm;
+  }
+  .table-dark thead tr {
+    border-bottom: 1px solid var(--surface-border);
+  }
+  .table-dark th {
+    @apply px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider;
+    color: var(--text-muted);
+  }
+  .table-dark td {
+    @apply px-4 py-3.5;
+    color: var(--text-secondary);
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+  }
+  .table-dark tbody tr:hover td {
+    background: rgba(255,255,255,0.02);
+    color: var(--text-primary);
+  }
+  .table-dark tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  /* ── Divider ── */
+  .divider {
+    border-color: var(--surface-border);
+  }
+
+  /* ── Stat highlight ── */
+  .stat-value {
+    @apply text-3xl font-bold tracking-tight;
+    color: var(--text-primary);
+  }
+
+  .stat-label {
+    @apply text-xs font-medium uppercase tracking-wider;
+    color: var(--text-muted);
+  }
+
+  /* ── Gold glow ── */
+  .gold-glow {
+    box-shadow: 0 0 30px rgba(200, 134, 14, 0.2), 0 0 60px rgba(200, 134, 14, 0.08);
+  }
+
+  /* ── Nav item ── */
+  .nav-item {
+    @apply flex items-center gap-2.5 px-3.5 py-2 rounded-xl text-sm font-medium transition-all duration-200;
+    color: var(--text-muted);
+  }
+  .nav-item:hover {
+    background: var(--surface-2);
+    color: var(--text-secondary);
+  }
+  .nav-item.active {
+    background: rgba(200, 134, 14, 0.15);
+    color: var(--gold-400);
+    border: 1px solid rgba(200, 134, 14, 0.2);
+  }
+
+  /* ── Progress bar ── */
+  .progress-bar {
+    @apply h-1.5 rounded-full overflow-hidden;
+    background: var(--surface-3);
+  }
+  .progress-fill {
+    @apply h-full rounded-full;
+    background: linear-gradient(90deg, var(--gold-600), var(--gold-400));
+    transition: width 0.6s ease;
+  }
+
+  /* ── Shimmer animation ── */
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+
+  .skeleton {
+    @apply rounded-lg;
+    background: linear-gradient(90deg, var(--surface-2) 25%, var(--surface-3) 50%, var(--surface-2) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+
+  /* ── Sunburst decorative ── */
+  @keyframes spin-slow {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  .spin-slow {
+    animation: spin-slow 20s linear infinite;
+  }
+
+  /* ── Fade in ── */
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .fade-in {
+    animation: fadeInUp 0.4s ease both;
+  }
+
+  /* ── Modal overlay ── */
+  .modal-overlay {
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(8px);
+  }
+
+  .modal-panel {
+    background: var(--surface-1);
+    border: 1px solid var(--surface-border);
   }
 }
