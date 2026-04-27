@@ -1,7 +1,7 @@
 import { NavLink } from 'react-router-dom'
 import {
   LayoutDashboard, ShoppingCart, Users, Package, Archive,
-  Calculator, ArrowLeftRight, CreditCard, Settings, Scissors,
+  Calculator, ArrowLeftRight, CreditCard, Settings,
   X, LogOut
 } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
@@ -48,9 +48,8 @@ export default function Sidebar({ open, onClose }: Props) {
         {/* Logo */}
         <div className="flex items-center justify-between px-5 py-5">
           <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center w-9 h-9 rounded-xl gold-glow"
-              style={{ background: 'linear-gradient(135deg, #C8860E, #E4A225)' }}>
-              <Scissors size={18} className="text-black" />
+            <div className="flex items-center justify-center w-10 h-10 rounded-full shadow-lg overflow-hidden border" style={{ borderColor: '#C8860E' }}>
+              <img src="/hair_craft_logo.jpg" alt="Logo" className="w-full h-full object-cover" />
             </div>
             <div>
               <span className="font-bold text-sm tracking-wide" style={{ color: 'var(--text-primary)' }}>
