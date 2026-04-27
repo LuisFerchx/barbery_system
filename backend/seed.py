@@ -10,7 +10,7 @@ import re
 
 sys.path.insert(0, os.path.dirname(__file__))
 os.environ.setdefault(
-    "DATABASE_URL", "postgresql://postgres:1234@localhost:5432/barberia_db"
+    "DATABASE_URL", "sqlite:///./barberia.db"
 )
 
 from app.database import SessionLocal, engine

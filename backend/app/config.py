@@ -4,7 +4,7 @@ import json
 
 
 class Settings(BaseSettings):
-    DATABASE_URL: str = "postgresql://barberia_user:password@localhost:5432/barberia_db"
+    DATABASE_URL: str = "sqlite:///./barberia.db"
     SECRET_KEY: str = "changeme"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
