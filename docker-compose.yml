@@ -9,7 +9,7 @@ services:
     environment:
       DATABASE_URL: sqlite:///./barberia.db
       SECRET_KEY: ${SECRET_KEY:-dev_secret_change_in_prod}
-      CORS_ORIGINS: '["http://localhost:5173","http://localhost:3000"]'
+      CORS_ORIGINS: '["http://localhost:5173","http://localhost:3000","http://100.48.11.7:5173"]'
     volumes:
       - ./backend:/app
     ports:
