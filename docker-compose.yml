@@ -5,7 +5,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8001 --reload
     environment:
       DATABASE_URL: sqlite:///./barberia.db
       SECRET_KEY: ${SECRET_KEY:-dev_secret_change_in_prod}
@@ -13,14 +13,14 @@ services:
     volumes:
       - ./backend:/app
     ports:
-      - "8000:8000"
+      - "8001:8001"
 
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
     environment:
-      VITE_API_BASE_URL: http://localhost:8000/api/v1
+      VITE_API_BASE_URL: http://localhost:8001/api/v1
     volumes:
       - ./frontend:/app
       - /app/node_modules
@@ -28,3 +28,4 @@ services:
       - "5173:5173"
     depends_on:
       - backend
+
