@@ -43,7 +43,7 @@ export default function Login() {
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-24 h-24 rounded-full mb-4 shadow-xl overflow-hidden border-2"
             style={{ borderColor: '#C8860E' }}>
-            <img src="/hair_craft_logo.jpg" alt="Hair Craft Logo" className="w-full h-full object-cover" />
+            <img src={`${import.meta.env.BASE_URL}hair_craft_logo.jpg`} alt="Hair Craft Logo" className="w-full h-full object-cover" />
           </div>
           <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>Hair Craft</h1>
           <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>Sistema de Gestión Premium</p>

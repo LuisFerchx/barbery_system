@@ -42,7 +42,13 @@ function AppRoutes() {
 export default function App() {
   return (
     <AuthProvider>
-      <BrowserRouter basename="/barberia">
+      <BrowserRouter 
+        basename="/barberia"
+        future={{
+          v7_startTransition: true,
+          v7_relativeSplatPath: true,
+        }}
+      >
         <AppRoutes />
         <Toaster position="top-right" toastOptions={{ duration: 3000 }} />
       </BrowserRouter>

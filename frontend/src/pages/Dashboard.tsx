@@ -41,8 +41,8 @@ export default function Dashboard() {
       barbersApi.list(),
     ]).then(([acc, stock, barb]) => {
       setAccounting(acc.data)
-      setLowStock(stock.data)
-      setBarbers(barb.data)
+      setLowStock(Array.isArray(stock.data) ? stock.data : (stock.data?.results || []))
+      setBarbers(Array.isArray(barb.data) ? barb.data : (barb.data?.results || []))
     }).finally(() => setLoading(false))
 
     // Build last 7 days chart data

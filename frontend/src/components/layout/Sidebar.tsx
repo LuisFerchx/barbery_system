@@ -49,7 +49,7 @@ export default function Sidebar({ open, onClose }: Props) {
         <div className="flex items-center justify-between px-5 py-5">
           <div className="flex items-center gap-3">
             <div className="flex items-center justify-center w-10 h-10 rounded-full shadow-lg overflow-hidden border" style={{ borderColor: '#C8860E' }}>
-              <img src="/hair_craft_logo.jpg" alt="Logo" className="w-full h-full object-cover" />
+              <img src={`${import.meta.env.BASE_URL}hair_craft_logo.jpg`} alt="Logo" className="w-full h-full object-cover" />
             </div>
             <div>
               <span className="font-bold text-sm tracking-wide" style={{ color: 'var(--text-primary)' }}>
