@@ -46,9 +46,9 @@ export const authApi = {
 
 // Sales
 export const salesApi = {
-  list: (params?: Record<string, unknown>) => api.get('/sales', { params }),
+  list: (params?: Record<string, unknown>) => api.get('/sales/', { params }),
   get: (id: number) => api.get(`/sales/${id}`),
-  create: (data: unknown) => api.post('/sales', data),
+  create: (data: unknown) => api.post('/sales/', data),
   update: (id: number, data: unknown) => api.put(`/sales/${id}`, data),
   delete: (id: number) => api.delete(`/sales/${id}`),
   dailySummary: (date?: string) => api.get('/sales/daily-summary', { params: date ? { target_date: date } : {} }),
@@ -56,9 +56,9 @@ export const salesApi = {
 
 // Barbers
 export const barbersApi = {
-  list: () => api.get('/barbers'),
+  list: () => api.get('/barbers/'),
   get: (id: number) => api.get(`/barbers/${id}`),
-  create: (data: unknown) => api.post('/barbers', data),
+  create: (data: unknown) => api.post('/barbers/', data),
   update: (id: number, data: unknown) => api.put(`/barbers/${id}`, data),
   dashboard: (id: number, params?: Record<string, unknown>) => api.get(`/barbers/${id}/dashboard`, { params }),
   createAdvance: (data: unknown) => api.post('/barbers/advances/', data),
@@ -81,9 +81,9 @@ export const catalogApi = {
 
 // Inventory
 export const inventoryApi = {
-  list: (category?: string) => api.get('/inventory', { params: category ? { category } : {} }),
+  list: (category?: string) => api.get('/inventory/', { params: category ? { category } : {} }),
   lowStock: () => api.get('/inventory/low-stock'),
-  create: (data: unknown) => api.post('/inventory', data),
+  create: (data: unknown) => api.post('/inventory/', data),
   update: (id: number, data: unknown) => api.put(`/inventory/${id}`, data),
   addMovement: (id: number, data: unknown) => api.post(`/inventory/${id}/movement`, data),
   movements: (id: number) => api.get(`/inventory/${id}/movements`),
@@ -100,17 +100,17 @@ export const accountingApi = {
 
 // Debts
 export const debtsApi = {
-  list: (params?: Record<string, unknown>) => api.get('/debts', { params }),
+  list: (params?: Record<string, unknown>) => api.get('/debts/', { params }),
   get: (id: number) => api.get(`/debts/${id}`),
-  create: (data: unknown) => api.post('/debts', data),
+  create: (data: unknown) => api.post('/debts/', data),
   update: (id: number, data: unknown) => api.put(`/debts/${id}`, data),
   payment: (id: number, data: unknown) => api.post(`/debts/${id}/payment`, data),
 }
 
 // Users
 export const usersApi = {
-  list: () => api.get('/users'),
-  create: (data: unknown) => api.post('/users', data),
+  list: () => api.get('/users/'),
+  create: (data: unknown) => api.post('/users/', data),
   update: (id: number, data: unknown) => api.put(`/users/${id}`, data),
   delete: (id: number) => api.delete(`/users/${id}`),
 }
