@@ -4,14 +4,17 @@ import { AuthProvider, useAuth } from './context/AuthContext'
 import Layout from './components/layout/Layout'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
-import Sales from './pages/Sales'
-import Barbers from './pages/Barbers'
-import Catalog from './pages/Catalog'
+import NewSale from './pages/NewSale'
+import SalesHistory from './pages/SalesHistory'
+import Clients from './pages/Clients'
 import Inventory from './pages/Inventory'
-import Accounting from './pages/Accounting'
-import Transfers from './pages/Transfers'
-import Debts from './pages/Debts'
+import Analytics from './pages/Analytics'
+import Expenses from './pages/Expenses'
+import Settings from './pages/Settings'
+import OperatingManual from './pages/OperatingManual'
+import Services from './pages/Services'
 import Admin from './pages/Admin'
+import ProductSales from './pages/ProductSales'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -26,14 +29,17 @@ function AppRoutes() {
       <Route path="/login" element={<Login />} />
       <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>
         <Route index element={<Dashboard />} />
-        <Route path="sales" element={<Sales />} />
-        <Route path="barbers" element={<Barbers />} />
-        <Route path="catalog" element={<Catalog />} />
+        <Route path="sales/new" element={<NewSale />} />
+        <Route path="sales" element={<SalesHistory />} />
+        <Route path="clients" element={<Clients />} />
         <Route path="inventory" element={<Inventory />} />
-        <Route path="accounting" element={<Accounting />} />
-        <Route path="transfers" element={<Transfers />} />
-        <Route path="debts" element={<Debts />} />
+        <Route path="analytics" element={<Analytics />} />
+        <Route path="expenses" element={<Expenses />} />
+        <Route path="settings" element={<Settings />} />
+        <Route path="services" element={<Services />} />
+        <Route path="manual" element={<OperatingManual />} />
         <Route path="admin" element={<Admin />} />
+        <Route path="product-sales" element={<ProductSales />} />
       </Route>
     </Routes>
   )
@@ -42,7 +48,7 @@ function AppRoutes() {
 export default function App() {
   return (
     <AuthProvider>
-      <BrowserRouter 
+      <BrowserRouter
         basename="/barberia"
         future={{
           v7_startTransition: true,

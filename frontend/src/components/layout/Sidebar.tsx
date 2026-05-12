@@ -1,21 +1,28 @@
 import { NavLink } from 'react-router-dom'
 import {
-  LayoutDashboard, ShoppingCart, Users, Package, Archive,
-  Calculator, ArrowLeftRight, CreditCard, Settings,
-  X, LogOut
+  LayoutDashboard, Plus, ClipboardList, Users, Package,
+  BarChart2, Receipt, Settings, BookOpen, Shield, Scissors, X, LogOut, ShoppingBag
 } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import clsx from 'clsx'
 
 const NAV = [
-  { to: '/',            icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/sales',       icon: ShoppingCart,    label: 'Ventas' },
-  { to: '/barbers',     icon: Users,           label: 'Barberos' },
-  { to: '/catalog',     icon: Package,         label: 'Servicios' },
-  { to: '/inventory',   icon: Archive,         label: 'Inventario' },
-  { to: '/accounting',  icon: Calculator,      label: 'Contabilidad' },
-  { to: '/transfers',   icon: ArrowLeftRight,  label: 'Transferencias' },
-  { to: '/debts',       icon: CreditCard,      label: 'Deudas' },
+  { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
+  { to: '/analytics', icon: BarChart2, label: 'Analítica' },
+  // { to: '/sales/new', icon: Plus, label: 'Cortes' },
+  { to: '/sales', icon: ClipboardList, label: 'Registro de Cortes' },
+  { to: '/product-sales', icon: ShoppingBag, label: 'Venta de Productos' },
+  { to: '/clients', icon: Users, label: 'Clientes' },
+  { to: '/inventory', icon: Package, label: 'Inventario' },
+
+  { to: '/expenses', icon: Receipt, label: 'Gastos' },
+  { to: '/services', icon: Scissors, label: 'Servicios' },
+  { to: '/manual', icon: BookOpen, label: 'Manual' },
+]
+
+const ADMIN_NAV = [
+  { to: '/settings', icon: Settings, label: 'Configuración' },
+  { to: '/admin', icon: Shield, label: 'Administración' },
 ]
 
 interface Props {
@@ -28,7 +35,6 @@ export default function Sidebar({ open, onClose }: Props) {
 
   return (
     <>
-      {/* Mobile backdrop */}
       {open && (
         <div
           className="fixed inset-0 z-20 lg:hidden"
@@ -48,34 +54,29 @@ export default function Sidebar({ open, onClose }: Props) {
         {/* Logo */}
         <div className="flex items-center justify-between px-5 py-5">
           <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center w-10 h-10 rounded-full shadow-lg overflow-hidden border" style={{ borderColor: '#C8860E' }}>
-              <img src={`${import.meta.env.BASE_URL}hair_craft_logo.jpg`} alt="Logo" className="w-full h-full object-cover" />
+            <div className="flex items-center justify-center w-10 h-10 rounded-lg shadow-lg overflow-hidden border" style={{ borderColor: '#C8860E' }}>
+              <img src={`${import.meta.env.BASE_URL}light-open-logo.gif`} alt="Logo" className="w-full h-full object-contain" />
             </div>
             <div>
               <span className="font-bold text-sm tracking-wide" style={{ color: 'var(--text-primary)' }}>
-                Hair Craft
+                BarberCraft System
               </span>
               <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Management</p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="lg:hidden btn-icon"
-          >
+          <button onClick={onClose} className="lg:hidden btn-icon">
             <X size={16} />
           </button>
         </div>
 
-        {/* Divider */}
         <div className="mx-5 mb-4 divider border-t" />
 
-        {/* Navigation */}
         <nav className="flex-1 overflow-y-auto px-3 space-y-0.5">
           {NAV.map(({ to, icon: Icon, label }) => (
             <NavLink
               key={to}
               to={to}
-              end={to === '/'}
+              end={to === '/' || to === '/sales/new'}
               onClick={onClose}
               className={({ isActive }) => clsx('nav-item', isActive && 'active')}
             >
@@ -85,18 +86,23 @@ export default function Sidebar({ open, onClose }: Props) {
           ))}
 
           {user?.role === 'admin' && (
-            <NavLink
-              to="/admin"
-              onClick={onClose}
-              className={({ isActive }) => clsx('nav-item', isActive && 'active')}
-            >
-              <Settings size={16} />
-              Admin
-            </NavLink>
+            <>
+              <div className="mx-2 my-2 border-t" style={{ borderColor: 'rgba(255,255,255,0.06)' }} />
+              {ADMIN_NAV.map(({ to, icon: Icon, label }) => (
+                <NavLink
+                  key={to}
+                  to={to}
+                  onClick={onClose}
+                  className={({ isActive }) => clsx('nav-item', isActive && 'active')}
+                >
+                  <Icon size={16} />
+                  {label}
+                </NavLink>
+              ))}
+            </>
           )}
         </nav>
 
-        {/* User footer */}
         <div className="mx-5 mb-4 divider border-t mt-4" />
         <div className="px-5 pb-5">
           <div className="flex items-center justify-between">
@@ -114,11 +120,7 @@ export default function Sidebar({ open, onClose }: Props) {
                 </p>
               </div>
             </div>
-            <button
-              onClick={logout}
-              className="btn-icon"
-              title="Cerrar sesión"
-            >
+            <button onClick={logout} className="btn-icon" title="Cerrar sesión">
               <LogOut size={14} />
             </button>
           </div>

@@ -1,13 +1,17 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
+from datetime import datetime
+from decimal import Decimal
 from ..models.inventory import InventoryItem, InventoryMovement
 from ..schemas.inventory import InventoryItemCreate, InventoryItemUpdate, MovementCreate
 
 
-def get_items(db: Session, category: str = None):
-    q = db.query(InventoryItem).filter(InventoryItem.is_active == 1)
+def get_items(db: Session, category: str = None, active_only: bool = True):
+    q = db.query(InventoryItem)
+    if active_only:
+        q = q.filter(InventoryItem.is_active == True)
     if category:
         q = q.filter(InventoryItem.category == category)
-    return q.all()
+    return q.order_by(InventoryItem.name).all()
 
 
 def get_item(db: Session, item_id: int):
@@ -34,16 +38,27 @@ def update_item(db: Session, item_id: int, item: InventoryItemUpdate):
 
 
 def create_movement(db: Session, movement: MovementCreate):
-    db_obj = InventoryMovement(**movement.model_dump())
     item = get_item(db, movement.item_id)
-    if item:
-        if movement.movement_type == "entrada":
-            item.stock_current += movement.quantity
-        elif movement.movement_type == "salida":
-            item.stock_current = max(0, item.stock_current - movement.quantity)
-            item.stock_sold += movement.quantity
-        elif movement.movement_type == "ajuste":
-            item.stock_current = movement.quantity
+    if not item:
+        raise ValueError("Item de inventario no encontrado")
+
+    date = movement.date or datetime.utcnow()
+    db_obj = InventoryMovement(
+        item_id=movement.item_id,
+        movement_type=movement.movement_type,
+        quantity=movement.quantity,
+        reason=movement.reason,
+        date=date,
+        product_sale_id=None,
+    )
+
+    if movement.movement_type == "in":
+        item.stock_current += movement.quantity
+    elif movement.movement_type == "out":
+        item.stock_current = max(Decimal("0"), item.stock_current - movement.quantity)
+    elif movement.movement_type == "adjustment":
+        item.stock_current = movement.quantity
+
     db.add(db_obj)
     db.commit()
     db.refresh(db_obj)
@@ -59,6 +74,6 @@ def get_movements(db: Session, item_id: int = None, limit: int = 100):
 
 def get_low_stock(db: Session):
     return db.query(InventoryItem).filter(
-        InventoryItem.is_active == 1,
-        InventoryItem.stock_current <= InventoryItem.low_stock_alert
+        InventoryItem.is_active == True,
+        InventoryItem.stock_current <= InventoryItem.stock_minimum,
     ).all()

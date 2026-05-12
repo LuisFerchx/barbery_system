@@ -41,11 +41,11 @@ export default function Login() {
       <div className="w-full max-w-sm relative fade-in">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-24 h-24 rounded-full mb-4 shadow-xl overflow-hidden border-2"
+          <div className="inline-flex items-center justify-center w-28 h-28 rounded-2xl mb-4 shadow-xl overflow-hidden border-2"
             style={{ borderColor: '#C8860E' }}>
-            <img src={`${import.meta.env.BASE_URL}hair_craft_logo.jpg`} alt="Hair Craft Logo" className="w-full h-full object-cover" />
+            <img src={`${import.meta.env.BASE_URL}light-open-logo.gif`} alt="Hair Craft Logo" className="w-full h-full object-contain" />
           </div>
-          <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>Hair Craft</h1>
+          <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>BarberCraft System</h1>
           <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>Sistema de Gestión Premium</p>
         </div>
 
@@ -61,7 +61,7 @@ export default function Login() {
                 type="text"
                 value={username}
                 onChange={e => setUsername(e.target.value)}
-                className="input-dark"
+                className="input w-full"
                 placeholder="admin"
                 required
                 autoComplete="username"
@@ -76,7 +76,7 @@ export default function Login() {
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={e => setPassword(e.target.value)}
-                  className="input-dark pr-10"
+                  className="input w-full pr-10"
                   placeholder="••••••••"
                   required
                   autoComplete="current-password"
@@ -109,7 +109,7 @@ export default function Login() {
         </div>
 
         <p className="text-center text-xs mt-4" style={{ color: 'var(--text-muted)' }}>
-          © {new Date().getFullYear()} Hair Craft. Todos los derechos reservados.
+          © {new Date().getFullYear()} BarberCraft System. Todos los derechos reservados.
         </p>
       </div>
     </div>

@@ -1,39 +1,37 @@
 from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime
+from decimal import Decimal
 
 
-class InventoryItemBase(BaseModel):
+class InventoryItemCreate(BaseModel):
     name: str
-    category: Optional[str] = None
+    category: str  # merchandise, courtesy
     unit: str = "unidad"
-    stock_initial: int = 0
-    stock_current: int = 0
-    low_stock_alert: int = 5
-    cost_price: float = 0.0
-    sale_price: float = 0.0
-
-
-class InventoryItemCreate(InventoryItemBase):
-    pass
+    stock_current: Decimal = Decimal("0")
+    stock_minimum: Decimal = Decimal("5")
+    cost_per_unit: Decimal = Decimal("0")
 
 
 class InventoryItemUpdate(BaseModel):
     name: Optional[str] = None
     category: Optional[str] = None
     unit: Optional[str] = None
-    stock_current: Optional[int] = None
-    low_stock_alert: Optional[int] = None
-    cost_price: Optional[float] = None
-    sale_price: Optional[float] = None
-    is_active: Optional[int] = None
+    stock_current: Optional[Decimal] = None
+    stock_minimum: Optional[Decimal] = None
+    cost_per_unit: Optional[Decimal] = None
+    is_active: Optional[bool] = None
 
 
-class InventoryItemOut(InventoryItemBase):
+class InventoryItemOut(BaseModel):
     id: int
-    stock_opened: int
-    stock_sold: int
-    is_active: int
+    name: str
+    category: str
+    unit: str
+    stock_current: Decimal
+    stock_minimum: Decimal
+    cost_per_unit: Decimal
+    is_active: bool
     created_at: datetime
 
     model_config = {"from_attributes": True}
@@ -41,13 +39,19 @@ class InventoryItemOut(InventoryItemBase):
 
 class MovementCreate(BaseModel):
     item_id: int
-    movement_type: str  # entrada, salida, ajuste
-    quantity: int
+    movement_type: str  # in, out, adjustment
+    quantity: Decimal
     reason: Optional[str] = None
+    date: Optional[datetime] = None
 
 
-class MovementOut(MovementCreate):
+class MovementOut(BaseModel):
     id: int
+    item_id: int
+    movement_type: str
+    quantity: Decimal
+    reason: Optional[str] = None
     date: datetime
+    product_sale_id: Optional[int] = None
 
     model_config = {"from_attributes": True}

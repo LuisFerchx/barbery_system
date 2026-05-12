@@ -1,15 +1,25 @@
 from .user import User
-from .barber import Barber, Advance, BankTransfer
-from .service import Service, Product
-from .sale import Sale
+from .barber import Barber
+from .client import Client
+from .catalog import ServiceCatalog, ProductCatalog
+from .bank_transaction import BankTransaction
 from .inventory import InventoryItem, InventoryMovement
-from .expense import Expense, DailyReport
-from .debt import Debt, DebtPayment
+from .product_sale import ProductSale
+from .sale import Sale
+from .config import IncomeSplitConfig, PaymentMethodConfig
+from .expense import Expense
+from .manual import OperatingManualEntry
 
 __all__ = [
-    "User", "Barber", "Advance", "BankTransfer",
-    "Service", "Product", "Sale",
+    "User",
+    "Barber",
+    "Client",
+    "ServiceCatalog", "ProductCatalog",
+    "BankTransaction",
     "InventoryItem", "InventoryMovement",
-    "Expense", "DailyReport",
-    "Debt", "DebtPayment",
+    "ProductSale",
+    "Sale",
+    "IncomeSplitConfig", "PaymentMethodConfig",
+    "Expense",
+    "OperatingManualEntry",
 ]

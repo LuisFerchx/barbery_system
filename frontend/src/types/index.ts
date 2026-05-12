@@ -11,70 +11,98 @@ export interface User {
 export interface Barber {
   id: number
   name: string
-  lastname?: string
+  lastname: string
   phone?: string
-  email?: string
   commission_rate: number
   is_active: boolean
   created_at: string
 }
 
-export interface BarberDashboard {
-  barber: Barber
-  total_clients: number
-  total_sales: number
-  total_commissions: number
-  total_advances: number
-  net_balance: number
-  total_bank_transfers: number
-}
-
-export interface Service {
+export interface Client {
   id: number
   name: string
-  price: number
-  commission: number
-  description?: string
+  lastname: string
+  phone?: string
+  identification_number?: string
+  email?: string
+  notes?: string
   is_active: boolean
   created_at: string
+  total_sales?: number
 }
 
-export interface Product {
+export interface ServiceCatalog {
   id: number
   name: string
+  category: 'haircut' | 'beard' | 'combo' | 'other'
   price: number
-  commission: number
-  description?: string
   is_active: boolean
-  created_at: string
+}
+
+export interface ProductCatalog {
+  id: number
+  name: string
+  brand?: string
+  cost_price: number
+  sale_price: number
+  is_active: boolean
 }
 
 export interface Sale {
   id: number
+  number: string
   date: string
-  client_name: string
-  client_lastname?: string
-  contact: string
+  client_id?: number
+  client_name?: string
   barber_id: number
   barber_name?: string
-  service_id?: number
+  service_id: number
   service_name?: string
-  service_value: number
-  product_id?: number
-  product_name?: string
-  product_value: number
-  drink: string
-  total: number
-  tip: number
-  bank_transfer: number
-  barber_commission: number
-  status: string
+  gross_total: number
+  payment_method: 'cash' | 'card_debit' | 'card_credit' | 'transfer'
+  is_returning_client: boolean
+  barber_commission_amount: number
+  real_income: number
+  split_profit: number
+  split_owner_salary: number
+  split_taxes: number
+  split_operating: number
+  courtesy_drink_given: boolean
+  courtesy_drink_item_id?: number | null
+  courtesy_drink_item_name?: string | null
+  cross_sell: boolean
   notes?: string
   created_at: string
 }
 
-export interface PaginatedSales {
+export interface SaleListOut {
   items: Sale[]
+  total: number
+  page: number
+  page_size: number
+  pages: number
+}
+
+export interface ProductSale {
+  id: number
+  date: string
+  barber_id: number
+  barber_name?: string
+  item_id: number
+  item_name?: string
+  client_id?: number
+  client_name?: string
+  quantity: number
+  unit_price: number
+  subtotal: number
+  barber_commission_amount: number
+  payment_method: string
+  notes?: string
+  created_at: string
+}
+
+export interface ProductSaleListOut {
+  items: ProductSale[]
   total: number
   page: number
   page_size: number
@@ -84,26 +112,23 @@ export interface PaginatedSales {
 export interface InventoryItem {
   id: number
   name: string
-  category?: string
+  category: 'merchandise' | 'courtesy'
   unit: string
-  stock_initial: number
   stock_current: number
-  stock_opened: number
-  stock_sold: number
-  low_stock_alert: number
-  cost_price: number
-  sale_price: number
-  is_active: number
+  stock_minimum: number
+  cost_per_unit: number
+  is_active: boolean
   created_at: string
 }
 
 export interface InventoryMovement {
   id: number
   item_id: number
-  movement_type: string
+  movement_type: 'in' | 'out' | 'adjustment'
   quantity: number
   reason?: string
   date: string
+  product_sale_id?: number
 }
 
 export interface Expense {
@@ -116,50 +141,103 @@ export interface Expense {
   created_at: string
 }
 
-export interface AccountingDashboard {
-  service_income: number
-  product_income: number
-  transfer_income: number
-  cash_income: number
-  total_income: number
-  total_expenses: number
-  net_profit: number
-  period_label: string
+export interface SplitConfig {
+  id: number
+  name: string
+  percentage: number
+  updated_at: string
 }
 
-export interface Debt {
+export interface PaymentMethodConfig {
   id: number
-  client_name: string
-  client_lastname?: string
-  client_phone?: string
-  concept: string
-  original_amount: number
-  paid_amount: number
-  pending_amount: number
-  date: string
-  due_date?: string
-  status: 'pendiente' | 'parcial' | 'pagado'
-  notes?: string
-  created_at: string
+  method: string
+  commission_rate: number
+  updated_at: string
 }
 
-export interface Advance {
-  id: number
+export interface InventoryAlert {
+  item_id: number
+  name: string
+  category: string
+  stock_current: number
+  stock_minimum: number
+}
+
+export interface TopBarber {
   barber_id: number
-  amount: number
-  date: string
-  note?: string
+  name: string
+  lastname: string
+  total_real_income: number
+  total_sales: number
 }
 
-export interface BankTransfer {
+export interface SplitBreakdown {
+  profit: number
+  owner_salary: number
+  taxes: number
+  operating: number
+}
+
+export interface DashboardSummary {
+  month: string
+  gross_income: number
+  service_gross_income: number
+  product_gross_income: number
+  barber_commissions_total: number
+  real_income_total: number
+  total_expenses: number
+  operating_profit: number
+  taxes_reserved: number
+  net_profit: number
+  split_breakdown: SplitBreakdown
+  inventory_alerts: InventoryAlert[]
+  top_barbers: TopBarber[]
+}
+
+export interface ClientMetrics {
+  month: string
+  new_clients: number
+  returning_clients: number
+  total_clients: number
+  retention_rate: number
+}
+
+export interface BarberCrossSell {
+  barber_id: number
+  name: string
+  lastname: string
+  total_services: number
+  product_sales_count: number
+  cross_sell_rate: number
+}
+
+export interface CrossSellMetrics {
+  month: string
+  total_services: number
+  cross_sell_count: number
+  overall_rate: number
+  by_barber: BarberCrossSell[]
+}
+
+export interface CourtesyDrinkRank {
+  item_id: number
+  name: string
+  count: number
+}
+
+export interface CourtesyDrinksMetrics {
+  month: string
+  top_drinks: CourtesyDrinkRank[]
+}
+
+export interface ManualEntry {
   id: number
-  barber_id?: number
-  recipient_name: string
-  amount: number
-  bank: string
-  reference?: string
-  note?: string
-  date: string
+  section: string
+  title: string
+  content?: string
+  order_index: number
+  updated_at: string
+  updated_by?: string
 }
 
 export interface TokenOut {

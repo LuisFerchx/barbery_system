@@ -4,15 +4,15 @@ import Sidebar from './Sidebar'
 import Header from './Header'
 
 const TITLES: Record<string, string> = {
-  '/':            'Dashboard',
-  '/sales':       'Ventas',
-  '/barbers':     'Barberos',
-  '/catalog':     'Servicios y Productos',
-  '/inventory':   'Inventario',
-  '/accounting':  'Contabilidad',
-  '/transfers':   'Transferencias',
-  '/debts':       'Deudas',
-  '/admin':       'Administración',
+  '/': 'Dashboard',
+  '/sales': 'Ventas',
+  '/barbers': 'Barberos',
+  '/catalog': 'Servicios y Productos',
+  '/inventory': 'Inventario',
+  '/accounting': 'Contabilidad',
+  '/transfers': 'Transferencias',
+  '/debts': 'Deudas',
+  '/admin': 'Administración',
 }
 
 export default function Layout() {
@@ -21,7 +21,7 @@ export default function Layout() {
 
   const title = Object.entries(TITLES).find(([path]) =>
     path === '/' ? location.pathname === '/' : location.pathname.startsWith(path)
-  )?.[1] || 'Hair Craft'
+  )?.[1] || 'BarberCraft System'
 
   useEffect(() => { setSidebarOpen(false) }, [location.pathname])
 

@@ -1,189 +1,157 @@
 """
 Run: python seed.py
-Seeds initial data: default admin user, barbers, services, products from CSV.
+Seeds initial data for the refactored Barbery System.
 """
 
-import csv, sys, os
-from datetime import datetime, date
+import sys
+import os
 from decimal import Decimal
-import re
 
 sys.path.insert(0, os.path.dirname(__file__))
-os.environ.setdefault(
-    "DATABASE_URL", "sqlite:///./barberia.db"
-)
+os.environ.setdefault("DATABASE_URL", "sqlite:///./barberia.db")
 
-from app.database import SessionLocal, engine
-from app.models import *
-from app.database import Base
+from app.database import SessionLocal, engine, Base
+from app.models import (
+    User, Barber, ServiceCatalog, ProductCatalog,
+    InventoryItem, IncomeSplitConfig, PaymentMethodConfig,
+    OperatingManualEntry,
+)
 from app.security import hash_password
 
 Base.metadata.create_all(bind=engine)
 db = SessionLocal()
 
+
+def seed(label, query, create):
+    if not query():
+        obj = create()
+        db.add(obj) if not isinstance(obj, list) else [db.add(o) for o in obj]
+        db.commit()
+        print(f"✓ {label}")
+    else:
+        print(f"· {label} ya existe")
+
+
 # Admin user
-if not db.query(User).filter(User.username == "admin").first():
-    db.add(
-        User(
-            username="admin",
-            full_name="Administrador",
-            role="admin",
-            hashed_password=hash_password("admin123"),
-            is_active=True,
-        )
-    )
-    db.commit()
-    print("✓ Admin creado (admin/admin123)")
+seed(
+    "Admin (admin/admin123)",
+    lambda: db.query(User).filter(User.username == "admin").first(),
+    lambda: User(
+        username="admin",
+        full_name="Administrador",
+        role="admin",
+        hashed_password=hash_password("admin123"),
+        is_active=True,
+    ),
+)
 
-# Barbers from CSV
+# Barbers
 BARBERS = [
-    {"name": "Kevin", "commission_rate": 45.0},
-    {"name": "Javier", "commission_rate": 45.0},
-    {"name": "Elvis", "commission_rate": 45.0},
-    {"name": "May", "commission_rate": 45.0},
+    {"name": "Carlos", "lastname": "Mendez", "phone": "555-0001", "commission_rate": Decimal("0.40")},
+    {"name": "Luis",   "lastname": "Gomez",  "phone": "555-0002", "commission_rate": Decimal("0.40")},
+    {"name": "Marco",  "lastname": "Silva",  "phone": "555-0003", "commission_rate": Decimal("0.35")},
 ]
-barber_map = {}
-for b_data in BARBERS:
-    existing = db.query(Barber).filter(Barber.name.ilike(b_data["name"])).first()
-    if not existing:
-        b = Barber(**b_data)
-        db.add(b)
-        db.flush()
-        barber_map[b_data["name"].upper()] = b.id
-    else:
-        barber_map[b_data["name"].upper()] = existing.id
+for b in BARBERS:
+    if not db.query(Barber).filter(Barber.name == b["name"], Barber.lastname == b["lastname"]).first():
+        db.add(Barber(**b))
 db.commit()
-print("✓ Barberos creados")
+print("✓ Barberos (3)")
 
-# Services
+# Service catalog
 SERVICES = [
-    {"name": "CABELLO", "price": 9.0, "commission": 4.0},
-    {"name": "CABELLO Y BARBA", "price": 16.0, "commission": 7.0},
-    {"name": "BARBA", "price": 9.0, "commission": 4.0},
-    {"name": "DEPILACION", "price": 3.5, "commission": 1.5},
-    {"name": "FILOS", "price": 4.0, "commission": 2.0},
-    {"name": "LIMPIEZA", "price": 12.0, "commission": 5.0},
-    {"name": "PERMANENTE", "price": 50.0, "commission": 20.0},
+    {"name": "Corte Básico",       "category": "haircut", "price": Decimal("150")},
+    {"name": "Arreglo de Barba",   "category": "beard",   "price": Decimal("80")},
+    {"name": "Corte + Barba",      "category": "combo",   "price": Decimal("200")},
+    {"name": "Filos",              "category": "other",   "price": Decimal("50")},
+    {"name": "Depilación",         "category": "other",   "price": Decimal("60")},
 ]
-service_map = {}
-for s_data in SERVICES:
-    existing = db.query(Service).filter(Service.name == s_data["name"]).first()
-    if not existing:
-        s = Service(**s_data)
-        db.add(s)
-        db.flush()
-        service_map[s_data["name"]] = s.id
-    else:
-        service_map[s_data["name"]] = existing.id
+for s in SERVICES:
+    if not db.query(ServiceCatalog).filter(ServiceCatalog.name == s["name"]).first():
+        db.add(ServiceCatalog(**s))
 db.commit()
-print("✓ Servicios creados")
+print("✓ Catálogo de servicios (5)")
 
-# Products
+# Product catalog (reference, not inventory)
 PRODUCTS = [
-    {"name": "CERA BRILLO", "price": 15.0, "commission": 5.0},
-    {"name": "MINOXIDIL", "price": 25.0, "commission": 8.0},
-    {"name": "CHAMPU", "price": 10.0, "commission": 3.0},
-    {"name": "FIJADOR", "price": 8.0, "commission": 2.5},
-    {"name": "NADA", "price": 0.0, "commission": 0.0},
+    {"name": "Minoxidil",    "brand": "Kirkland", "cost_price": Decimal("80"),  "sale_price": Decimal("150")},
+    {"name": "Cera de Pelo", "brand": "Gatsby",   "cost_price": Decimal("30"),  "sale_price": Decimal("60")},
+    {"name": "Fijador",      "brand": "Revlon",   "cost_price": Decimal("25"),  "sale_price": Decimal("50")},
 ]
-product_map = {}
-for p_data in PRODUCTS:
-    existing = db.query(Product).filter(Product.name == p_data["name"]).first()
-    if not existing:
-        p = Product(**p_data)
-        db.add(p)
-        db.flush()
-        product_map[p_data["name"]] = p.id
-    else:
-        product_map[p_data["name"]] = existing.id
+for p in PRODUCTS:
+    if not db.query(ProductCatalog).filter(ProductCatalog.name == p["name"]).first():
+        db.add(ProductCatalog(**p))
 db.commit()
-print("✓ Productos creados")
+print("✓ Catálogo de productos (3)")
 
 # Inventory items
 INVENTORY = [
-    ("COLA", "bebida"),
-    ("POWER", "bebida"),
-    ("AGUA", "bebida"),
-    ("FUZETEA", "bebida"),
-    ("CERVEZA", "bebida"),
-    ("ENERGIZANTE", "bebida"),
-    ("TOALLAS", "insumo"),
-    ("CAPAS", "insumo"),
+    {"name": "Agua",         "category": "courtesy",     "unit": "botella", "stock_current": Decimal("50"), "stock_minimum": Decimal("10"), "cost_per_unit": Decimal("5")},
+    {"name": "Refresco",     "category": "courtesy",     "unit": "lata",    "stock_current": Decimal("50"), "stock_minimum": Decimal("10"), "cost_per_unit": Decimal("8")},
+    {"name": "Minoxidil",    "category": "merchandise",  "unit": "frasco",  "stock_current": Decimal("20"), "stock_minimum": Decimal("5"),  "cost_per_unit": Decimal("80")},
+    {"name": "Cera de Pelo", "category": "merchandise",  "unit": "tarro",   "stock_current": Decimal("15"), "stock_minimum": Decimal("5"),  "cost_per_unit": Decimal("30")},
+    {"name": "Fijador",      "category": "merchandise",  "unit": "frasco",  "stock_current": Decimal("10"), "stock_minimum": Decimal("3"),  "cost_per_unit": Decimal("25")},
 ]
-for name, cat in INVENTORY:
-    if not db.query(InventoryItem).filter(InventoryItem.name == name).first():
-        db.add(
-            InventoryItem(name=name, category=cat, stock_current=20, low_stock_alert=5)
-        )
+for item in INVENTORY:
+    if not db.query(InventoryItem).filter(InventoryItem.name == item["name"]).first():
+        db.add(InventoryItem(**item))
 db.commit()
-print("✓ Inventario creado")
+print("✓ Inventario (5 items: 2 cortesía, 3 mercancía)")
 
+# Income split config (40% profit, 30% owner salary, 20% taxes, 10% operating)
+SPLIT = [
+    {"name": "profit",       "percentage": Decimal("0.40")},
+    {"name": "owner_salary", "percentage": Decimal("0.30")},
+    {"name": "taxes",        "percentage": Decimal("0.20")},
+    {"name": "operating",    "percentage": Decimal("0.10")},
+]
+for s in SPLIT:
+    if not db.query(IncomeSplitConfig).filter(IncomeSplitConfig.name == s["name"]).first():
+        db.add(IncomeSplitConfig(**s))
+db.commit()
+print("✓ Configuración de split (40/30/20/10)")
 
-def parse_money(val: str) -> float:
-    if not val:
-        return 0.0
-    cleaned = re.sub(r"[^\d.]", "", val)
-    return float(cleaned) if cleaned else 0.0
+# Payment method config
+PAYMENT_METHODS = [
+    {"method": "cash",        "commission_rate": Decimal("0.00")},
+    {"method": "card_debit",  "commission_rate": Decimal("0.02")},
+    {"method": "card_credit", "commission_rate": Decimal("0.03")},
+    {"method": "transfer",    "commission_rate": Decimal("0.01")},
+]
+for pm in PAYMENT_METHODS:
+    if not db.query(PaymentMethodConfig).filter(PaymentMethodConfig.method == pm["method"]).first():
+        db.add(PaymentMethodConfig(**pm))
+db.commit()
+print("✓ Configuración de métodos de pago")
 
-
-def parse_date(val: str) -> date:
-    for fmt in ("%d/%m/%Y", "%m/%d/%Y", "%Y-%m-%d"):
-        try:
-            return datetime.strptime(val.strip(), fmt).date()
-        except ValueError:
-            continue
-    return date.today()
-
-
-# Import CSV sales
-csv_path = os.path.join(os.path.dirname(__file__), "..", "data_marzo.csv")
-if os.path.exists(csv_path) and db.query(Sale).count() == 0:
-    with open(csv_path, newline="", encoding="utf-8") as f:
-        reader = csv.DictReader(f)
-        count = 0
-        for row in reader:
-            if not row.get("FECHA") or not row.get("NOMBRE"):
-                continue
-            barber_name = (row.get("BARBERO") or "").strip().upper()
-            barber_id = barber_map.get(barber_name)
-            if not barber_id:
-                continue
-            service_name = (row.get("SERVICIO") or "").strip().upper()
-            service_id = service_map.get(service_name)
-            product_name = (row.get("PRODUCTO") or "NADA").strip().upper()
-            product_id = product_map.get(product_name, product_map.get("NADA"))
-
-            # Commission per barber column
-            commission = 0.0
-            if barber_name == "ELVIS":
-                commission = parse_money(row.get("ELVIS", ""))
-            elif barber_name == "MAY":
-                commission = parse_money(row.get("MAY", ""))
-            elif barber_name == "KEVIN":
-                commission = parse_money(row.get("BARBERO 1", ""))
-            elif barber_name == "JAVIER":
-                commission = parse_money(row.get("BARBERO 2", ""))
-
-            sale = Sale(
-                date=parse_date(row["FECHA"]),
-                client_name=(row.get("NOMBRE") or "").strip(),
-                client_lastname=(row.get("APELLIDO") or "").strip(),
-                contact=row.get("CONTACTO", "REGISTRADO"),
-                barber_id=barber_id,
-                service_id=service_id,
-                service_value=parse_money(row.get("VALOR", "")),
-                product_id=product_id,
-                product_value=0.0,
-                drink=(row.get("BEBIDA") or "NADA").strip(),
-                total=parse_money(row.get("TOTAL", "")),
-                bank_transfer=parse_money(row.get("TRANSFERENCIAS", "")),
-                barber_commission=commission,
-                status="completed",
-            )
-            db.add(sale)
-            count += 1
-        db.commit()
-        print(f"✓ {count} ventas importadas desde CSV")
+# Operating manual entries
+MANUAL = [
+    {
+        "section": "courtesy_protocol",
+        "title": "Protocolo de Bebida de Cortesía",
+        "content": "Al iniciar el corte, ofrecer la bebida de cortesía al cliente con las siguientes palabras:\n\n\"Bienvenido, ¿le gustaría una bebida mientras lo atendemos? Tenemos agua y refresco.\"\n\nAsegurarse de registrar si se ofreció en el sistema.",
+        "order_index": 1,
+    },
+    {
+        "section": "cross_sell_script",
+        "title": "Script de Venta Cruzada de Productos",
+        "content": "Al finalizar el corte, mostrar los productos disponibles al cliente:\n\n\"¿Le interesaría llevar alguno de nuestros productos? Tenemos minoxidil para el crecimiento del cabello, cera y fijador para mantener el estilo.\"\n\nRecuerda marcar la venta cruzada en el sistema.",
+        "order_index": 1,
+    },
+    {
+        "section": "checkout_procedure",
+        "title": "Procedimiento de Cobro",
+        "content": "**Cobro en efectivo:**\n1. Indicar el monto total al cliente\n2. Recibir el pago\n3. Registrar en el sistema como método: Efectivo\n\n**Cobro con terminal:**\n1. Indicar el monto al cliente\n2. Procesar en terminal bancaria\n3. Esperar confirmación\n4. Registrar en sistema según tipo: Débito o Crédito",
+        "order_index": 1,
+    },
+]
+for entry in MANUAL:
+    if not db.query(OperatingManualEntry).filter(
+        OperatingManualEntry.section == entry["section"],
+        OperatingManualEntry.title == entry["title"],
+    ).first():
+        db.add(OperatingManualEntry(**entry))
+db.commit()
+print("✓ Manual de operaciones (3 secciones)")
 
 db.close()
 print("\n✓ Seed completado exitosamente")

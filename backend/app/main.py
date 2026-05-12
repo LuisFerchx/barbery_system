@@ -5,6 +5,8 @@ from .database import Base, engine
 from .api.v1.router import api_router
 from . import models  # ensure models are registered
 
+# Tables are managed by Alembic migrations (run: alembic upgrade head)
+# create_all kept as dev fallback only
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(

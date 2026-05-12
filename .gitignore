@@ -14,3 +14,5 @@ build/
 postgres_data/
 *.log
 .DS_Store
+.claude/
+.gemini/

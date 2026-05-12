@@ -37,49 +37,52 @@ api.interceptors.response.use(
   }
 )
 
-// Auth
 export const authApi = {
   login: (username: string, password: string) =>
     api.post('/auth/login', { username, password }),
   me: () => api.get('/auth/me'),
 }
 
-// Sales
 export const salesApi = {
   list: (params?: Record<string, unknown>) => api.get('/sales/', { params }),
   get: (id: number) => api.get(`/sales/${id}`),
   create: (data: unknown) => api.post('/sales/', data),
-  update: (id: number, data: unknown) => api.put(`/sales/${id}`, data),
   delete: (id: number) => api.delete(`/sales/${id}`),
-  dailySummary: (date?: string) => api.get('/sales/daily-summary', { params: date ? { target_date: date } : {} }),
 }
 
-// Barbers
+export const productSalesApi = {
+  list: (params?: Record<string, unknown>) => api.get('/product-sales/', { params }),
+  get: (id: number) => api.get(`/product-sales/${id}`),
+  create: (data: unknown) => api.post('/product-sales/', data),
+  delete: (id: number) => api.delete(`/product-sales/${id}`),
+}
+
 export const barbersApi = {
-  list: () => api.get('/barbers/'),
+  list: (params?: Record<string, unknown>) => api.get('/barbers/', { params }),
   get: (id: number) => api.get(`/barbers/${id}`),
   create: (data: unknown) => api.post('/barbers/', data),
   update: (id: number, data: unknown) => api.put(`/barbers/${id}`, data),
-  dashboard: (id: number, params?: Record<string, unknown>) => api.get(`/barbers/${id}/dashboard`, { params }),
-  createAdvance: (data: unknown) => api.post('/barbers/advances/', data),
-  listAdvances: (barberId?: number) => api.get('/barbers/advances/list', { params: barberId ? { barber_id: barberId } : {} }),
-  createTransfer: (data: unknown) => api.post('/barbers/transfers/', data),
-  listTransfers: (barberId?: number) => api.get('/barbers/transfers/list', { params: barberId ? { barber_id: barberId } : {} }),
 }
 
-// Catalog
+export const clientsApi = {
+  list: (params?: Record<string, unknown>) => api.get('/clients/', { params }),
+  get: (id: number) => api.get(`/clients/${id}`),
+  create: (data: unknown) => api.post('/clients/', data),
+  update: (id: number, data: unknown) => api.put(`/clients/${id}`, data),
+  delete: (id: number) => api.delete(`/clients/${id}`),
+}
+
 export const catalogApi = {
-  services: () => api.get('/catalog/services'),
+  services: (params?: Record<string, unknown>) => api.get('/catalog/services', { params }),
   createService: (data: unknown) => api.post('/catalog/services', data),
   updateService: (id: number, data: unknown) => api.put(`/catalog/services/${id}`, data),
   deleteService: (id: number) => api.delete(`/catalog/services/${id}`),
-  products: () => api.get('/catalog/products'),
+  products: (params?: Record<string, unknown>) => api.get('/catalog/products', { params }),
   createProduct: (data: unknown) => api.post('/catalog/products', data),
   updateProduct: (id: number, data: unknown) => api.put(`/catalog/products/${id}`, data),
   deleteProduct: (id: number) => api.delete(`/catalog/products/${id}`),
 }
 
-// Inventory
 export const inventoryApi = {
   list: (category?: string) => api.get('/inventory/', { params: category ? { category } : {} }),
   lowStock: () => api.get('/inventory/low-stock'),
@@ -89,25 +92,37 @@ export const inventoryApi = {
   movements: (id: number) => api.get(`/inventory/${id}/movements`),
 }
 
-// Accounting
-export const accountingApi = {
-  dashboard: (params?: Record<string, unknown>) => api.get('/accounting/dashboard', { params }),
-  expenses: (params?: Record<string, unknown>) => api.get('/accounting/expenses', { params }),
-  createExpense: (data: unknown) => api.post('/accounting/expenses', data),
-  updateExpense: (id: number, data: unknown) => api.put(`/accounting/expenses/${id}`, data),
-  deleteExpense: (id: number) => api.delete(`/accounting/expenses/${id}`),
+export const expensesApi = {
+  list: (params?: Record<string, unknown>) => api.get('/expenses/', { params }),
+  create: (data: unknown) => api.post('/expenses/', data),
+  update: (id: number, data: unknown) => api.put(`/expenses/${id}`, data),
+  delete: (id: number) => api.delete(`/expenses/${id}`),
 }
 
-// Debts
-export const debtsApi = {
-  list: (params?: Record<string, unknown>) => api.get('/debts/', { params }),
-  get: (id: number) => api.get(`/debts/${id}`),
-  create: (data: unknown) => api.post('/debts/', data),
-  update: (id: number, data: unknown) => api.put(`/debts/${id}`, data),
-  payment: (id: number, data: unknown) => api.post(`/debts/${id}/payment`, data),
+export const analyticsApi = {
+  clients: (month?: string) => api.get('/analytics/clients', { params: month ? { month } : {} }),
+  crossSell: (month?: string) => api.get('/analytics/cross-sell', { params: month ? { month } : {} }),
+  courtesyDrinks: (month?: string) => api.get('/analytics/courtesy-drinks', { params: month ? { month } : {} }),
 }
 
-// Users
+export const dashboardApi = {
+  summary: (month?: string) => api.get('/dashboard/summary', { params: month ? { month } : {} }),
+}
+
+export const configApi = {
+  getSplit: () => api.get('/config/split'),
+  updateSplit: (data: unknown) => api.put('/config/split', data),
+  getPaymentMethods: () => api.get('/config/payment-methods'),
+  updatePaymentMethod: (method: string, data: unknown) => api.put(`/config/payment-methods/${method}`, data),
+}
+
+export const manualApi = {
+  list: (section?: string) => api.get('/manual/entries', { params: section ? { section } : {} }),
+  create: (data: unknown) => api.post('/manual/entries', data),
+  update: (id: number, data: unknown) => api.put(`/manual/entries/${id}`, data),
+  delete: (id: number) => api.delete(`/manual/entries/${id}`),
+}
+
 export const usersApi = {
   list: () => api.get('/users/'),
   create: (data: unknown) => api.post('/users/', data),

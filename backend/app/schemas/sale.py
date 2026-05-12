@@ -1,69 +1,53 @@
 from pydantic import BaseModel
 from typing import Optional, List
-from datetime import date, datetime
+from datetime import datetime
+from decimal import Decimal
 
 
-class SaleBase(BaseModel):
-    date: date
-    client_name: str
-    client_lastname: Optional[str] = None
-    contact: str = "REGISTRADO"
+class SaleCreate(BaseModel):
+    date: datetime
+    client_id: Optional[int] = None
     barber_id: int
-    service_id: Optional[int] = None
-    service_value: float = 0.0
-    product_id: Optional[int] = None
-    product_value: float = 0.0
-    drink: str = "NADA"
-    total: float = 0.0
-    tip: float = 0.0
-    bank_transfer: float = 0.0
-    barber_commission: float = 0.0
+    service_id: int
+    gross_total: Decimal
+    payment_method: str  # cash, card_debit, card_credit, transfer
+    is_returning_client: bool = False
+    courtesy_drink_given: bool = False
+    courtesy_drink_item_id: Optional[int] = None
+    cross_sell: bool = False
     notes: Optional[str] = None
 
 
-class SaleCreate(SaleBase):
-    pass
-
-
-class SaleUpdate(BaseModel):
-    date: Optional[date] = None
-    client_name: Optional[str] = None
-    client_lastname: Optional[str] = None
-    barber_id: Optional[int] = None
-    service_id: Optional[int] = None
-    service_value: Optional[float] = None
-    product_id: Optional[int] = None
-    product_value: Optional[float] = None
-    drink: Optional[str] = None
-    total: Optional[float] = None
-    tip: Optional[float] = None
-    bank_transfer: Optional[float] = None
-    barber_commission: Optional[float] = None
-    status: Optional[str] = None
-    notes: Optional[str] = None
-
-
-class SaleOut(SaleBase):
+class SaleOut(BaseModel):
     id: int
-    status: str
-    created_at: datetime
+    number: str
+    date: datetime
+    client_id: Optional[int] = None
+    client_name: Optional[str] = None
+    barber_id: int
     barber_name: Optional[str] = None
+    service_id: int
     service_name: Optional[str] = None
-    product_name: Optional[str] = None
+    gross_total: Decimal
+    payment_method: str
+    is_returning_client: bool
+    barber_commission_amount: Decimal
+    real_income: Decimal
+    split_profit: Decimal
+    split_owner_salary: Decimal
+    split_taxes: Decimal
+    split_operating: Decimal
+    courtesy_drink_given: bool
+    courtesy_drink_item_id: Optional[int] = None
+    courtesy_drink_item_name: Optional[str] = None
+    cross_sell: bool
+    notes: Optional[str] = None
+    created_at: datetime
 
     model_config = {"from_attributes": True}
 
 
-class SaleFilters(BaseModel):
-    date_from: Optional[date] = None
-    date_to: Optional[date] = None
-    barber_id: Optional[int] = None
-    client_name: Optional[str] = None
-    min_total: Optional[float] = None
-    max_total: Optional[float] = None
-
-
-class PaginatedSales(BaseModel):
+class SaleListOut(BaseModel):
     items: List[SaleOut]
     total: int
     page: int
