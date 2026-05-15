@@ -30,21 +30,26 @@ interface FormData {
   date: string
 }
 
-function FinancialPreview({ grossTotal, barberCommissionRate, splitConfig }: {
+function FinancialPreview({ grossTotal, commissionRate, rateSource, splitConfig }: {
   grossTotal: number
-  barberCommissionRate: number
+  commissionRate: number
+  rateSource: 'barber' | 'service'
   splitConfig: { name: string; percentage: number }[]
 }) {
   if (!grossTotal || grossTotal <= 0) return null
 
-  const barberCommission = grossTotal * barberCommissionRate
-  const realIncome = grossTotal - barberCommission
+  const commission = grossTotal * commissionRate
+  const realIncome = grossTotal - commission
 
   const split = Object.fromEntries(splitConfig.map(s => [s.name, s.percentage]))
   const profit = realIncome * (split.profit ?? 0.40)
   const ownerSalary = realIncome * (split.owner_salary ?? 0.30)
   const taxes = realIncome * (split.taxes ?? 0.20)
   const operating = realIncome * (split.operating ?? 0.10)
+
+  const commissionLabel = rateSource === 'service'
+    ? `Comisión servicio (${(commissionRate * 100).toFixed(0)}%)`
+    : `Comisión barbero (${(commissionRate * 100).toFixed(0)}%)`
 
   return (
     <div className="mt-4 rounded-xl p-4" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
@@ -55,8 +60,8 @@ function FinancialPreview({ grossTotal, barberCommissionRate, splitConfig }: {
           <span style={{ color: 'var(--text-primary)' }}>{fmt.money(grossTotal)}</span>
         </div>
         <div className="flex justify-between text-sm">
-          <span style={{ color: 'var(--text-muted)' }}>Comisión barbero ({(barberCommissionRate * 100).toFixed(0)}%)</span>
-          <span style={{ color: '#f87171' }}>-{fmt.money(barberCommission)}</span>
+          <span style={{ color: 'var(--text-muted)' }}>{commissionLabel}</span>
+          <span style={{ color: '#f87171' }}>-{fmt.money(commission)}</span>
         </div>
         <div className="flex justify-between text-sm font-semibold pt-1" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
           <span style={{ color: 'var(--gold-400)' }}>Ingreso Real</span>
@@ -88,7 +93,7 @@ function FinancialPreview({ grossTotal, barberCommissionRate, splitConfig }: {
 
 export default function NewSale() {
   const navigate = useNavigate()
-  const { splitConfig } = useAuth()
+  const { user, splitConfig } = useAuth()
   const [barbers, setBarbers] = useState<Barber[]>([])
   const [services, setServices] = useState<ServiceCatalog[]>([])
   const [clients, setClients] = useState<Client[]>([])
@@ -123,6 +128,7 @@ export default function NewSale() {
   }, [])
 
   const watchedBarberId = watch('barber_id')
+  const watchedServiceId = watch('service_id')
   const watchedGrossTotal = watch('gross_total')
   const watchedCourtesyDrink = watch('courtesy_drink_given')
 
@@ -134,6 +140,19 @@ export default function NewSale() {
     () => barbers.find(b => b.id === parseInt(watchedBarberId)),
     [barbers, watchedBarberId]
   )
+
+  const selectedService = useMemo(
+    () => services.find(s => s.id === parseInt(watchedServiceId)),
+    [services, watchedServiceId]
+  )
+
+  const effectiveRate = useMemo(() => {
+    if (!selectedBarber) return null
+    if (user?.commission_by_service && selectedService?.commission_rate != null) {
+      return { rate: Number(selectedService.commission_rate), source: 'service' as const }
+    }
+    return { rate: Number(selectedBarber.commission_rate), source: 'barber' as const }
+  }, [user, selectedBarber, selectedService])
 
   const filteredClients = useMemo(
     () => clientSearch.length >= 2
@@ -342,10 +361,11 @@ export default function NewSale() {
             </div>
           </div>
 
-          {selectedBarber && (
+          {effectiveRate && (
             <FinancialPreview
               grossTotal={parseFloat(watchedGrossTotal) || 0}
-              barberCommissionRate={Number(selectedBarber.commission_rate)}
+              commissionRate={effectiveRate.rate}
+              rateSource={effectiveRate.source}
               splitConfig={splitConfig}
             />
           )}

@@ -6,6 +6,8 @@ from datetime import datetime
 from decimal import Decimal
 from ..models.sale import Sale
 from ..models.barber import Barber
+from ..models.company import Company
+from ..models.catalog import ServiceCatalog
 from ..models.config import IncomeSplitConfig
 from ..models.inventory import InventoryItem, InventoryMovement
 from ..schemas.sale import SaleCreate
@@ -138,8 +140,18 @@ def create_sale(db: Session, company_id: int, sale_in: SaleCreate):
     if not barber:
         raise ValueError("Barbero no encontrado")
 
+    effective_rate = barber.commission_rate
+    if sale_in.service_id:
+        company = db.query(Company).filter(Company.id == company_id).first()
+        if company and company.commission_by_service:
+            service = db.query(ServiceCatalog).filter(
+                ServiceCatalog.id == sale_in.service_id
+            ).first()
+            if service and service.commission_rate is not None:
+                effective_rate = service.commission_rate
+
     financials = calculate_sale_financials(
-        sale_in.gross_total, barber.commission_rate, db, company_id
+        sale_in.gross_total, effective_rate, db, company_id
     )
     number = generate_sale_number(db)
 

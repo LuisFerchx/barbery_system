@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { TrendingUp, ShoppingBag, AlertTriangle, Scissors, Package, ArrowRight } from 'lucide-react'
+import { TrendingUp, ShoppingBag, AlertTriangle, Scissors, Package, ArrowRight, Users } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { dashboardApi } from '../services/api'
 import StatCard from '../components/ui/StatCard'
@@ -79,7 +79,7 @@ export default function Dashboard() {
       ) : (
         <>
           {/* KPI cards */}
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
             <StatCard
               title="Ingresos Cortes"
               value={fmt.money(Number(data?.service_gross_income ?? 0))}
@@ -93,6 +93,13 @@ export default function Dashboard() {
               icon={<Package size={16} />}
               color="blue"
               subtitle="Ventas de productos"
+            />
+            <StatCard
+              title="Comisiones Barberos"
+              value={fmt.money(Number(data?.barber_commissions_total ?? 0))}
+              icon={<Users size={16} />}
+              color="red"
+              subtitle="Pagado a barberos"
             />
             <StatCard
               title="Ingreso Real"
@@ -205,6 +212,19 @@ export default function Dashboard() {
                   <span style={{ color: 'var(--text-muted)' }}>Gastos</span>
                   <span style={{ color: '#f87171' }}>-{fmt.money(Number(data?.total_expenses ?? 0))}</span>
                 </div>
+                {(data?.cash_closings_count ?? 0) > 0 || (data?.cash_register_adjustments ?? 0) !== 0 ? (
+                  <div className="flex justify-between text-sm">
+                    <div>
+                      <span style={{ color: 'var(--text-muted)' }}>Ajustes de caja</span>
+                      <span className="ml-1.5 text-xs" style={{ color: 'var(--text-muted)', opacity: 0.6 }}>
+                        ({data?.cash_closings_count ?? 0} cierre{(data?.cash_closings_count ?? 0) !== 1 ? 's' : ''})
+                      </span>
+                    </div>
+                    <span style={{ color: (data?.cash_register_adjustments ?? 0) >= 0 ? '#4ade80' : '#f87171' }}>
+                      {(data?.cash_register_adjustments ?? 0) >= 0 ? '+' : ''}{fmt.money(Number(data?.cash_register_adjustments ?? 0))}
+                    </span>
+                  </div>
+                ) : null}
                 <div className="flex justify-between text-sm">
                   <span style={{ color: 'var(--text-muted)' }}>Utilidad operativa</span>
                   <span style={{ color: '#60a5fa' }}>{fmt.money(Number(data?.operating_profit ?? 0))}</span>

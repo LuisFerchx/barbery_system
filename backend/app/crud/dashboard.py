@@ -8,6 +8,7 @@ from ..models.expense import Expense
 from ..models.inventory import InventoryItem
 from ..models.barber import Barber
 from ..models.config import IncomeSplitConfig
+from ..models.cash_register import CashRegisterClosing
 
 
 def _month_bounds(month: str):
@@ -50,8 +51,17 @@ def get_dashboard_summary(db: Session, company_id: int, month: str) -> dict:
     product_real = product_gross - product_commission
     real_income_total = service_real + product_real
 
+    closings = db.query(CashRegisterClosing).filter(
+        CashRegisterClosing.company_id == company_id,
+        CashRegisterClosing.closed_at >= start,
+        CashRegisterClosing.closed_at <= end,
+    ).all()
+    cash_register_adjustments = sum(
+        (c.discrepancy for c in closings), Decimal("0")
+    )
+
     total_expenses = sum((e.amount for e in expenses), Decimal("0"))
-    operating_profit = real_income_total - total_expenses
+    operating_profit = real_income_total - total_expenses + cash_register_adjustments
 
     split_taxes = sum((s.split_taxes for s in sales), Decimal("0"))
     taxes_reserved = split_taxes
@@ -114,6 +124,8 @@ def get_dashboard_summary(db: Session, company_id: int, month: str) -> dict:
         "operating_profit": operating_profit.quantize(Decimal("0.01")),
         "taxes_reserved": taxes_reserved.quantize(Decimal("0.01")),
         "net_profit": net_profit.quantize(Decimal("0.01")),
+        "cash_register_adjustments": cash_register_adjustments.quantize(Decimal("0.01")),
+        "cash_closings_count": len(closings),
         "split_breakdown": split_breakdown,
         "inventory_alerts": inventory_alerts,
         "top_barbers": top_barbers,

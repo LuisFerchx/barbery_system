@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Plus, Pencil, Trash2, ToggleLeft, ToggleRight } from 'lucide-react'
+import { Plus, Pencil, Trash2, ToggleLeft, ToggleRight, Clock } from 'lucide-react'
 import { catalogApi } from '../services/api'
 import Modal from '../components/ui/Modal'
 import Table from '../components/ui/Table'
@@ -19,9 +19,11 @@ interface Form {
   name: string
   category: string
   price: string
+  commission_rate: string
+  duration: string
 }
 
-const EMPTY: Form = { name: '', category: 'haircut', price: '' }
+const EMPTY: Form = { name: '', category: 'haircut', price: '', commission_rate: '', duration: '' }
 
 export default function Services() {
   const [services, setServices] = useState<ServiceCatalog[]>([])
@@ -49,7 +51,13 @@ export default function Services() {
 
   const openEdit = (s: ServiceCatalog) => {
     setEditing(s)
-    setForm({ name: s.name, category: s.category, price: String(s.price) })
+    setForm({
+      name: s.name,
+      category: s.category,
+      price: String(s.price),
+      commission_rate: s.commission_rate != null ? String(Math.round(Number(s.commission_rate) * 100)) : '',
+      duration: s.duration != null ? String(s.duration) : '',
+    })
     setShowModal(true)
   }
 
@@ -58,10 +66,12 @@ export default function Services() {
     if (!form.price || parseFloat(form.price) <= 0) { toast.error('Precio requerido'); return }
     setSaving(true)
     try {
-      const payload = {
+      const payload: Record<string, unknown> = {
         name: form.name.trim(),
         category: form.category,
         price: parseFloat(form.price),
+        commission_rate: form.commission_rate !== '' ? parseFloat(form.commission_rate) / 100 : null,
+        duration: form.duration !== '' ? parseInt(form.duration) : null,
       }
       if (editing) {
         await catalogApi.updateService(editing.id, payload)
@@ -121,6 +131,18 @@ export default function Services() {
     )},
     { key: 'price', label: 'Precio', render: (v: number) => (
       <span className="font-semibold" style={{ color: 'var(--gold-400)' }}>{fmt.money(Number(v))}</span>
+    )},
+    { key: 'commission_rate', label: 'Comisión', render: (v: number | null) => (
+      v != null
+        ? <span className="text-xs font-medium" style={{ color: 'var(--gold-400)' }}>{(Number(v) * 100).toFixed(0)}%</span>
+        : <span style={{ color: 'var(--text-muted)' }}>—</span>
+    )},
+    { key: 'duration', label: 'Duración', render: (v: number | null) => (
+      v != null
+        ? <span className="flex items-center gap-1 text-xs" style={{ color: 'var(--text-secondary)' }}>
+            <Clock size={11} />{v} min
+          </span>
+        : <span style={{ color: 'var(--text-muted)' }}>—</span>
     )},
     { key: 'is_active', label: 'Estado', render: (v: boolean) => (
       <span className="text-xs font-medium" style={{ color: v ? '#4ade80' : '#f87171' }}>
@@ -188,6 +210,31 @@ export default function Services() {
                   {...f('price')}
                 />
               </div>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs block mb-1.5" style={{ color: 'var(--text-muted)' }}>
+                Comisión del servicio <span style={{ opacity: 0.6 }}>(%)</span>
+              </label>
+              <input
+                type="number" min="0" max="100" step="1"
+                className="input w-full"
+                placeholder="— usa comisión del barbero"
+                {...f('commission_rate')}
+              />
+              <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>Vacío = usa comisión del barbero</p>
+            </div>
+            <div>
+              <label className="text-xs block mb-1.5" style={{ color: 'var(--text-muted)' }}>
+                Duración <span style={{ opacity: 0.6 }}>(min)</span>
+              </label>
+              <input
+                type="number" min="1" step="1"
+                className="input w-full"
+                placeholder="— sin definir"
+                {...f('duration')}
+              />
             </div>
           </div>
           <div className="flex gap-3 pt-1">

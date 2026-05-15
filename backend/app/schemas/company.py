@@ -8,6 +8,7 @@ class CompanyBase(BaseModel):
     slug: str
     phone: Optional[str] = None
     address: Optional[str] = None
+    commission_by_service: bool = False
 
 
 class CompanyCreate(CompanyBase):
@@ -20,11 +21,18 @@ class CompanyUpdate(BaseModel):
     phone: Optional[str] = None
     address: Optional[str] = None
     is_active: Optional[bool] = None
+    commission_by_service: Optional[bool] = None
+    open_hour: Optional[str] = None
+    close_hour: Optional[str] = None
+    operating_days: Optional[str] = None
 
 
 class CompanyOut(CompanyBase):
     id: int
     is_active: bool
+    open_hour: Optional[str] = None
+    close_hour: Optional[str] = None
+    operating_days: Optional[str] = None
     created_at: datetime
 
     model_config = {"from_attributes": True}

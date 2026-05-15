@@ -34,20 +34,20 @@ export default function StatCard({ title, value, icon, color = 'gold', subtitle,
   const trendColor = trend === undefined ? '' : trend > 0 ? '#4ade80' : trend < 0 ? '#f87171' : '#8a8680'
 
   return (
-    <div className="card">
-      <div className="flex items-start justify-between mb-4">
+    <div className="card" style={{ padding: '1rem' }}>
+      <div className="flex items-start justify-between mb-2">
         <p className="stat-label">{title}</p>
         <div
-          className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+          className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
           style={{ background: iconBg, color: iconColor }}
         >
           {icon}
         </div>
       </div>
 
-      <p className="stat-value mb-1">{value}</p>
+      <p className="stat-value mb-0.5">{value}</p>
 
-      <div className="flex items-center gap-2 mt-2">
+      <div className="flex items-center gap-2 mt-1">
         {subtitle && (
           <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{subtitle}</p>
         )}

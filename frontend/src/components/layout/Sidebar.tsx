@@ -1,7 +1,7 @@
 import { NavLink } from 'react-router-dom'
 import {
   LayoutDashboard, ClipboardList, Users, Package,
-  BarChart2, Receipt, Settings, BookOpen, Shield, Scissors, X, LogOut, ShoppingBag, Building2
+  BarChart2, Receipt, Settings, BookOpen, Shield, Scissors, X, LogOut, ShoppingBag, Building2, Wallet
 } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import clsx from 'clsx'
@@ -16,13 +16,15 @@ const NAV = [
   { to: '/inventory', icon: Package, label: 'Inventario' },
 
   { to: '/expenses', icon: Receipt, label: 'Gastos' },
+  { to: '/caja-chica', icon: Wallet, label: 'Caja Chica' },
   { to: '/services', icon: Scissors, label: 'Servicios' },
   { to: '/manual', icon: BookOpen, label: 'Manual' },
 ]
 
 const ADMIN_NAV = [
-  { to: '/settings', icon: Settings, label: 'Configuración' },
-  { to: '/admin', icon: Shield, label: 'Administración' },
+  { to: '/company-settings', icon: Building2, label: 'Mi Empresa' },
+  { to: '/settings',         icon: Settings,  label: 'Configuración' },
+  { to: '/admin',            icon: Shield,     label: 'Administración' },
 ]
 
 interface Props {
