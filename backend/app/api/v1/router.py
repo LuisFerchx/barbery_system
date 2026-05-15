@@ -5,11 +5,12 @@ from .endpoints import (
     sales, product_sales,
     catalog, inventory,
     expenses, analytics, dashboard,
-    config, manual,
+    config, manual, companies,
 )
 
 api_router = APIRouter()
 
+api_router.include_router(companies.router, prefix="/companies", tags=["companies"])
 api_router.include_router(auth.router, prefix="/auth", tags=["auth"])
 api_router.include_router(users.router, prefix="/users", tags=["users"])
 api_router.include_router(barbers.router, prefix="/barbers", tags=["barbers"])

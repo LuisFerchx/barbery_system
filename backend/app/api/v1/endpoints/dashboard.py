@@ -4,7 +4,7 @@ from datetime import datetime
 from ....database import get_db
 from ....crud import dashboard as crud
 from ....schemas.dashboard import DashboardSummary
-from ....security import get_current_user
+from ....security import get_current_user, get_company_id
 
 router = APIRouter()
 
@@ -19,5 +19,6 @@ def summary(
     month: str = Query(default=None, description="YYYY-MM"),
     db: Session = Depends(get_db),
     _=Depends(get_current_user),
+    company_id: int = Depends(get_company_id),
 ):
-    return crud.get_dashboard_summary(db, month or _current_month())
+    return crud.get_dashboard_summary(db, company_id, month or _current_month())

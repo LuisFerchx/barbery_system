@@ -4,7 +4,7 @@ from datetime import datetime
 from ....database import get_db
 from ....crud import analytics as crud
 from ....schemas.analytics import ClientMetrics, CrossSellMetrics, CourtesyDrinksMetrics
-from ....security import get_current_user
+from ....security import get_current_user, get_company_id
 
 router = APIRouter()
 
@@ -19,8 +19,9 @@ def client_metrics(
     month: str = Query(default=None, description="YYYY-MM"),
     db: Session = Depends(get_db),
     _=Depends(get_current_user),
+    company_id: int = Depends(get_company_id),
 ):
-    return crud.get_client_metrics(db, month or _current_month())
+    return crud.get_client_metrics(db, company_id, month or _current_month())
 
 
 @router.get("/cross-sell", response_model=CrossSellMetrics)
@@ -28,8 +29,9 @@ def cross_sell_metrics(
     month: str = Query(default=None, description="YYYY-MM"),
     db: Session = Depends(get_db),
     _=Depends(get_current_user),
+    company_id: int = Depends(get_company_id),
 ):
-    return crud.get_cross_sell_metrics(db, month or _current_month())
+    return crud.get_cross_sell_metrics(db, company_id, month or _current_month())
 
 
 @router.get("/courtesy-drinks", response_model=CourtesyDrinksMetrics)
@@ -37,5 +39,6 @@ def courtesy_drinks_metrics(
     month: str = Query(default=None, description="YYYY-MM"),
     db: Session = Depends(get_db),
     _=Depends(get_current_user),
+    company_id: int = Depends(get_company_id),
 ):
-    return crud.get_top_courtesy_drinks(db, month or _current_month())
+    return crud.get_top_courtesy_drinks(db, company_id, month or _current_month())

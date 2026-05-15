@@ -1,7 +1,7 @@
 import { NavLink } from 'react-router-dom'
 import {
-  LayoutDashboard, Plus, ClipboardList, Users, Package,
-  BarChart2, Receipt, Settings, BookOpen, Shield, Scissors, X, LogOut, ShoppingBag
+  LayoutDashboard, ClipboardList, Users, Package,
+  BarChart2, Receipt, Settings, BookOpen, Shield, Scissors, X, LogOut, ShoppingBag, Building2
 } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import clsx from 'clsx'
@@ -61,7 +61,9 @@ export default function Sidebar({ open, onClose }: Props) {
               <span className="font-bold text-sm tracking-wide" style={{ color: 'var(--text-primary)' }}>
                 BarberCraft System
               </span>
-              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Management</p>
+              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                {user?.role === 'superadmin' ? 'Super Admin' : (user?.company_name || 'Management')}
+              </p>
             </div>
           </div>
           <button onClick={onClose} className="lg:hidden btn-icon">
@@ -99,6 +101,20 @@ export default function Sidebar({ open, onClose }: Props) {
                   {label}
                 </NavLink>
               ))}
+            </>
+          )}
+
+          {user?.role === 'superadmin' && (
+            <>
+              <div className="mx-2 my-2 border-t" style={{ borderColor: 'rgba(255,255,255,0.06)' }} />
+              <NavLink
+                to="/companies"
+                onClick={onClose}
+                className={({ isActive }) => clsx('nav-item', isActive && 'active')}
+              >
+                <Building2 size={16} />
+                Empresas
+              </NavLink>
             </>
           )}
         </nav>

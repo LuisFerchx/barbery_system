@@ -20,8 +20,10 @@ def generate_sale_number(db: Session) -> str:
             return number
 
 
-def _get_split_config(db: Session) -> dict:
-    rows = db.query(IncomeSplitConfig).all()
+def _get_split_config(db: Session, company_id: int) -> dict:
+    rows = db.query(IncomeSplitConfig).filter(
+        IncomeSplitConfig.company_id == company_id
+    ).all()
     return {row.name: row.percentage for row in rows}
 
 
@@ -29,10 +31,11 @@ def calculate_sale_financials(
     gross_total: Decimal,
     barber_commission_rate: Decimal,
     db: Session,
+    company_id: int,
 ) -> dict:
     barber_commission = gross_total * barber_commission_rate
     real_income = gross_total - barber_commission
-    split = _get_split_config(db)
+    split = _get_split_config(db, company_id)
 
     profit_pct = split.get("profit", Decimal("0.40"))
     owner_pct = split.get("owner_salary", Decimal("0.30"))
@@ -49,30 +52,28 @@ def calculate_sale_financials(
     }
 
 
-def _deduct_courtesy_drink(sale_id: int, db: Session, item_id: Optional[int] = None) -> None:
+def _deduct_courtesy_drink(
+    sale_id: int,
+    db: Session,
+    company_id: int,
+    item_id: Optional[int] = None,
+) -> None:
     if item_id:
-        item = (
-            db.query(InventoryItem)
-            .filter(
-                InventoryItem.id == item_id,
-                InventoryItem.category == "courtesy",
-                InventoryItem.is_active == True,
-            )
-            .first()
-        )
+        item = db.query(InventoryItem).filter(
+            InventoryItem.id == item_id,
+            InventoryItem.company_id == company_id,
+            InventoryItem.category == "courtesy",
+            InventoryItem.is_active == True,
+        ).first()
         if not item:
             raise ValueError("Bebida de cortesía seleccionada no encontrada o inactiva")
     else:
-        item = (
-            db.query(InventoryItem)
-            .filter(
-                InventoryItem.category == "courtesy",
-                InventoryItem.is_active == True,
-                InventoryItem.stock_current > 0,
-            )
-            .order_by(InventoryItem.stock_current.asc())
-            .first()
-        )
+        item = db.query(InventoryItem).filter(
+            InventoryItem.company_id == company_id,
+            InventoryItem.category == "courtesy",
+            InventoryItem.is_active == True,
+            InventoryItem.stock_current > 0,
+        ).order_by(InventoryItem.stock_current.asc()).first()
     if not item:
         return
     item.stock_current = max(Decimal("0"), item.stock_current - Decimal("1"))
@@ -88,6 +89,7 @@ def _deduct_courtesy_drink(sale_id: int, db: Session, item_id: Optional[int] = N
 
 def get_sales(
     db: Session,
+    company_id: int,
     skip: int = 0,
     limit: int = 50,
     date_from: datetime = None,
@@ -100,7 +102,7 @@ def get_sales(
         joinedload(Sale.client),
         joinedload(Sale.service),
         joinedload(Sale.courtesy_drink_item),
-    )
+    ).filter(Sale.company_id == company_id)
     if date_from:
         q = q.filter(Sale.date >= date_from)
     if date_to:
@@ -114,7 +116,7 @@ def get_sales(
     return total, items
 
 
-def get_sale(db: Session, sale_id: int):
+def get_sale(db: Session, company_id: int, sale_id: int):
     return (
         db.query(Sale)
         .options(
@@ -123,22 +125,26 @@ def get_sale(db: Session, sale_id: int):
             joinedload(Sale.service),
             joinedload(Sale.courtesy_drink_item),
         )
-        .filter(Sale.id == sale_id)
+        .filter(Sale.id == sale_id, Sale.company_id == company_id)
         .first()
     )
 
 
-def create_sale(db: Session, sale_in: SaleCreate):
-    barber = db.query(Barber).filter(Barber.id == sale_in.barber_id).first()
+def create_sale(db: Session, company_id: int, sale_in: SaleCreate):
+    barber = db.query(Barber).filter(
+        Barber.id == sale_in.barber_id,
+        Barber.company_id == company_id,
+    ).first()
     if not barber:
         raise ValueError("Barbero no encontrado")
 
     financials = calculate_sale_financials(
-        sale_in.gross_total, barber.commission_rate, db
+        sale_in.gross_total, barber.commission_rate, db, company_id
     )
     number = generate_sale_number(db)
 
     db_obj = Sale(
+        company_id=company_id,
         number=number,
         date=sale_in.date,
         client_id=sale_in.client_id,
@@ -157,15 +163,18 @@ def create_sale(db: Session, sale_in: SaleCreate):
     db.flush()
 
     if sale_in.courtesy_drink_given:
-        _deduct_courtesy_drink(db_obj.id, db, item_id=sale_in.courtesy_drink_item_id)
+        _deduct_courtesy_drink(db_obj.id, db, company_id, item_id=sale_in.courtesy_drink_item_id)
 
     db.commit()
     db.refresh(db_obj)
-    return get_sale(db, db_obj.id)
+    return get_sale(db, company_id, db_obj.id)
 
 
-def delete_sale(db: Session, sale_id: int):
-    db_obj = db.query(Sale).filter(Sale.id == sale_id).first()
+def delete_sale(db: Session, company_id: int, sale_id: int):
+    db_obj = db.query(Sale).filter(
+        Sale.id == sale_id,
+        Sale.company_id == company_id,
+    ).first()
     if db_obj:
         db.delete(db_obj)
         db.commit()

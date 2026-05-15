@@ -7,6 +7,7 @@ class Sale(Base):
     __tablename__ = "sales"
 
     id = Column(Integer, primary_key=True, index=True)
+    company_id = Column(Integer, ForeignKey("companies.id"), nullable=False, index=True)
     number = Column(String(20), unique=True, nullable=False, index=True)
     date = Column(DateTime(timezone=True), nullable=False, index=True)
     client_id = Column(Integer, ForeignKey("clients.id"), nullable=True)
@@ -28,6 +29,7 @@ class Sale(Base):
     bank_transaction_id = Column(Integer, ForeignKey("bank_transactions.id"), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
+    company = relationship("Company")
     barber = relationship("Barber", back_populates="sales")
     client = relationship("Client", back_populates="sales")
     service = relationship("ServiceCatalog", back_populates="sales")

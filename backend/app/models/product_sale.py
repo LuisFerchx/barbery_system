@@ -7,6 +7,7 @@ class ProductSale(Base):
     __tablename__ = "product_sales"
 
     id = Column(Integer, primary_key=True, index=True)
+    company_id = Column(Integer, ForeignKey("companies.id"), nullable=False, index=True)
     date = Column(DateTime(timezone=True), nullable=False, index=True)
     barber_id = Column(Integer, ForeignKey("barbers.id"), nullable=False, index=True)
     item_id = Column(Integer, ForeignKey("inventory_items.id"), nullable=False)
@@ -19,6 +20,7 @@ class ProductSale(Base):
     notes = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
+    company = relationship("Company")
     barber = relationship("Barber", back_populates="product_sales")
     item = relationship("InventoryItem", back_populates="product_sales")
     client = relationship("Client", back_populates="product_sales")

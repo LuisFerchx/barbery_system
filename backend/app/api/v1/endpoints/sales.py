@@ -6,7 +6,7 @@ from math import ceil
 from ....database import get_db
 from ....crud import sale as crud
 from ....schemas.sale import SaleCreate, SaleOut, SaleListOut
-from ....security import get_current_user
+from ....security import get_current_user, get_company_id
 
 router = APIRouter()
 
@@ -30,9 +30,14 @@ def list_sales(
     client_id: Optional[int] = None,
     db: Session = Depends(get_db),
     _=Depends(get_current_user),
+    company_id: int = Depends(get_company_id),
 ):
     skip = (page - 1) * page_size
-    total, items = crud.get_sales(db, skip=skip, limit=page_size, date_from=date_from, date_to=date_to, barber_id=barber_id, client_id=client_id)
+    total, items = crud.get_sales(
+        db, company_id, skip=skip, limit=page_size,
+        date_from=date_from, date_to=date_to,
+        barber_id=barber_id, client_id=client_id,
+    )
     pages = ceil(total / page_size) if total > 0 else 1
     return SaleListOut(
         items=[SaleOut(**_enrich(s)) for s in items],
@@ -44,25 +49,40 @@ def list_sales(
 
 
 @router.post("/", response_model=SaleOut)
-def create_sale(data: SaleCreate, db: Session = Depends(get_db), _=Depends(get_current_user)):
+def create_sale(
+    data: SaleCreate,
+    db: Session = Depends(get_db),
+    _=Depends(get_current_user),
+    company_id: int = Depends(get_company_id),
+):
     try:
-        sale = crud.create_sale(db, data)
+        sale = crud.create_sale(db, company_id, data)
     except ValueError as e:
         raise HTTPException(400, str(e))
     return SaleOut(**_enrich(sale))
 
 
 @router.get("/{sale_id}", response_model=SaleOut)
-def get_sale(sale_id: int, db: Session = Depends(get_db), _=Depends(get_current_user)):
-    sale = crud.get_sale(db, sale_id)
+def get_sale(
+    sale_id: int,
+    db: Session = Depends(get_db),
+    _=Depends(get_current_user),
+    company_id: int = Depends(get_company_id),
+):
+    sale = crud.get_sale(db, company_id, sale_id)
     if not sale:
         raise HTTPException(404, "Venta no encontrada")
     return SaleOut(**_enrich(sale))
 
 
 @router.delete("/{sale_id}")
-def delete_sale(sale_id: int, db: Session = Depends(get_db), _=Depends(get_current_user)):
-    obj = crud.delete_sale(db, sale_id)
+def delete_sale(
+    sale_id: int,
+    db: Session = Depends(get_db),
+    _=Depends(get_current_user),
+    company_id: int = Depends(get_company_id),
+):
+    obj = crud.delete_sale(db, company_id, sale_id)
     if not obj:
         raise HTTPException(404, "Venta no encontrada")
     return {"ok": True}

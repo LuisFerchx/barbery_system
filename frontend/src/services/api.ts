@@ -129,3 +129,12 @@ export const usersApi = {
   update: (id: number, data: unknown) => api.put(`/users/${id}`, data),
   delete: (id: number) => api.delete(`/users/${id}`),
 }
+
+export const companiesApi = {
+  list: () => api.get('/companies/'),
+  get: (id: number) => api.get(`/companies/${id}`),
+  create: (data: unknown) => api.post('/companies/', data),
+  setup: (data: unknown) => api.post('/companies/setup/', data),
+  update: (id: number, data: unknown) => api.put(`/companies/${id}`, data),
+  createUser: (companyId: number, data: unknown) => api.post(`/companies/${companyId}/users/`, data),
+}

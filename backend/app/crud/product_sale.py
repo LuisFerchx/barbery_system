@@ -9,6 +9,7 @@ from ..schemas.product_sale import ProductSaleCreate
 
 def get_product_sales(
     db: Session,
+    company_id: int,
     skip: int = 0,
     limit: int = 50,
     date_from: datetime = None,
@@ -20,7 +21,7 @@ def get_product_sales(
         joinedload(ProductSale.barber),
         joinedload(ProductSale.item),
         joinedload(ProductSale.client),
-    )
+    ).filter(ProductSale.company_id == company_id)
     if date_from:
         q = q.filter(ProductSale.date >= date_from)
     if date_to:
@@ -34,7 +35,7 @@ def get_product_sales(
     return total, items
 
 
-def get_product_sale(db: Session, product_sale_id: int):
+def get_product_sale(db: Session, company_id: int, product_sale_id: int):
     return (
         db.query(ProductSale)
         .options(
@@ -42,17 +43,23 @@ def get_product_sale(db: Session, product_sale_id: int):
             joinedload(ProductSale.item),
             joinedload(ProductSale.client),
         )
-        .filter(ProductSale.id == product_sale_id)
+        .filter(ProductSale.id == product_sale_id, ProductSale.company_id == company_id)
         .first()
     )
 
 
-def create_product_sale(db: Session, data: ProductSaleCreate):
-    barber = db.query(Barber).filter(Barber.id == data.barber_id).first()
+def create_product_sale(db: Session, company_id: int, data: ProductSaleCreate):
+    barber = db.query(Barber).filter(
+        Barber.id == data.barber_id,
+        Barber.company_id == company_id,
+    ).first()
     if not barber:
         raise ValueError("Barbero no encontrado")
 
-    item = db.query(InventoryItem).filter(InventoryItem.id == data.item_id).first()
+    item = db.query(InventoryItem).filter(
+        InventoryItem.id == data.item_id,
+        InventoryItem.company_id == company_id,
+    ).first()
     if not item:
         raise ValueError("Item de inventario no encontrado")
 
@@ -60,6 +67,7 @@ def create_product_sale(db: Session, data: ProductSaleCreate):
     barber_commission = (subtotal * barber.commission_rate).quantize(Decimal("0.01"))
 
     db_obj = ProductSale(
+        company_id=company_id,
         date=data.date,
         barber_id=data.barber_id,
         item_id=data.item_id,
@@ -86,11 +94,14 @@ def create_product_sale(db: Session, data: ProductSaleCreate):
     db.add(movement)
     db.commit()
     db.refresh(db_obj)
-    return get_product_sale(db, db_obj.id)
+    return get_product_sale(db, company_id, db_obj.id)
 
 
-def delete_product_sale(db: Session, product_sale_id: int):
-    db_obj = db.query(ProductSale).filter(ProductSale.id == product_sale_id).first()
+def delete_product_sale(db: Session, company_id: int, product_sale_id: int):
+    db_obj = db.query(ProductSale).filter(
+        ProductSale.id == product_sale_id,
+        ProductSale.company_id == company_id,
+    ).first()
     if not db_obj:
         return None
 

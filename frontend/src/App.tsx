@@ -15,6 +15,7 @@ import OperatingManual from './pages/OperatingManual'
 import Services from './pages/Services'
 import Admin from './pages/Admin'
 import ProductSales from './pages/ProductSales'
+import Companies from './pages/Companies'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -23,12 +24,26 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
+function IndexRedirect() {
+  const { user } = useAuth()
+  if (user?.role === 'superadmin') return <Navigate to="/companies" replace />
+  return <Dashboard />
+}
+
+function SuperadminRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth()
+  if (loading) return <div className="flex items-center justify-center h-screen text-gray-400">Cargando...</div>
+  if (!user) return <Navigate to="/login" replace />
+  if (user.role !== 'superadmin') return <Navigate to="/" replace />
+  return <>{children}</>
+}
+
 function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>
-        <Route index element={<Dashboard />} />
+        <Route index element={<IndexRedirect />} />
         <Route path="sales/new" element={<NewSale />} />
         <Route path="sales" element={<SalesHistory />} />
         <Route path="clients" element={<Clients />} />
@@ -40,6 +55,7 @@ function AppRoutes() {
         <Route path="manual" element={<OperatingManual />} />
         <Route path="admin" element={<Admin />} />
         <Route path="product-sales" element={<ProductSales />} />
+        <Route path="companies" element={<SuperadminRoute><Companies /></SuperadminRoute>} />
       </Route>
     </Routes>
   )

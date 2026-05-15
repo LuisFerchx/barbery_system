@@ -1,3 +1,4 @@
+from .company import Company
 from .user import User
 from .barber import Barber
 from .client import Client
@@ -11,6 +12,7 @@ from .expense import Expense
 from .manual import OperatingManualEntry
 
 __all__ = [
+    "Company",
     "User",
     "Barber",
     "Client",

@@ -37,4 +37,7 @@ def refresh(data: RefreshRequest, db: Session = Depends(get_db)):
 
 @router.get("/me", response_model=UserOut)
 def me(current_user=Depends(get_current_user)):
-    return current_user
+    out = UserOut.model_validate(current_user)
+    if current_user.company:
+        out.company_name = current_user.company.name
+    return out

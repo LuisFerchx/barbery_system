@@ -7,6 +7,7 @@ from sqlalchemy.pool import StaticPool
 from app.main import app
 from app.database import Base, get_db
 from app.security import get_current_user
+from app.models.company import Company
 
 SQLALCHEMY_TEST_URL = "sqlite:///:memory:"
 engine = create_engine(
@@ -22,6 +23,8 @@ class FakeUser:
     username = "testadmin"
     role = "admin"
     is_active = True
+    company_id = 1
+    company = None
 
 
 async def override_auth():
@@ -31,6 +34,9 @@ async def override_auth():
 @pytest.fixture(autouse=True)
 def setup_db():
     Base.metadata.create_all(bind=engine)
+    with TestingSessionLocal() as sess:
+        sess.add(Company(id=1, name="Test Company", slug="test", is_active=True))
+        sess.commit()
     yield
     Base.metadata.drop_all(bind=engine)
 

@@ -20,7 +20,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [splitConfig, setSplitConfig] = useState<SplitConfig[]>([])
   const [paymentConfig, setPaymentConfig] = useState<PaymentMethodConfig[]>([])
 
-  const loadConfig = async () => {
+  const loadConfig = async (role?: string) => {
+    if (role === 'superadmin') return
     try {
       const [splitRes, paymentRes] = await Promise.all([
         configApi.getSplit(),
@@ -39,7 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       authApi.me()
         .then(r => {
           setUser(r.data)
-          return loadConfig()
+          return loadConfig(r.data.role)
         })
         .catch(() => localStorage.clear())
         .finally(() => setLoading(false))
@@ -54,7 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('refresh_token', data.refresh_token)
     const me = await authApi.me()
     setUser(me.data)
-    await loadConfig()
+    await loadConfig(me.data.role)
   }
 
   const logout = () => {

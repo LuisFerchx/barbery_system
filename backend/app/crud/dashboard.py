@@ -19,12 +19,24 @@ def _month_bounds(month: str):
     return start, end
 
 
-def get_dashboard_summary(db: Session, month: str) -> dict:
+def get_dashboard_summary(db: Session, company_id: int, month: str) -> dict:
     start, end = _month_bounds(month)
 
-    sales = db.query(Sale).filter(Sale.date >= start, Sale.date <= end).all()
-    product_sales = db.query(ProductSale).filter(ProductSale.date >= start, ProductSale.date <= end).all()
-    expenses = db.query(Expense).filter(Expense.date >= start, Expense.date <= end).all()
+    sales = db.query(Sale).filter(
+        Sale.company_id == company_id,
+        Sale.date >= start,
+        Sale.date <= end,
+    ).all()
+    product_sales = db.query(ProductSale).filter(
+        ProductSale.company_id == company_id,
+        ProductSale.date >= start,
+        ProductSale.date <= end,
+    ).all()
+    expenses = db.query(Expense).filter(
+        Expense.company_id == company_id,
+        Expense.date >= start,
+        Expense.date <= end,
+    ).all()
 
     service_gross = sum((s.gross_total for s in sales), Decimal("0"))
     product_gross = sum((ps.subtotal for ps in product_sales), Decimal("0"))
@@ -45,7 +57,12 @@ def get_dashboard_summary(db: Session, month: str) -> dict:
     taxes_reserved = split_taxes
     net_profit = operating_profit - taxes_reserved
 
-    split_config = {row.name: row.percentage for row in db.query(IncomeSplitConfig).all()}
+    split_config = {
+        row.name: row.percentage
+        for row in db.query(IncomeSplitConfig).filter(
+            IncomeSplitConfig.company_id == company_id
+        ).all()
+    }
 
     split_breakdown = {
         "profit": (real_income_total * split_config.get("profit", Decimal("0.40"))).quantize(Decimal("0.01")),
@@ -55,6 +72,7 @@ def get_dashboard_summary(db: Session, month: str) -> dict:
     }
 
     alerts = db.query(InventoryItem).filter(
+        InventoryItem.company_id == company_id,
         InventoryItem.is_active == True,
         InventoryItem.stock_current <= InventoryItem.stock_minimum,
     ).all()
@@ -69,14 +87,13 @@ def get_dashboard_summary(db: Session, month: str) -> dict:
         for a in alerts
     ]
 
-    barbers = db.query(Barber).filter(Barber.is_active == True).all()
+    barbers = db.query(Barber).filter(
+        Barber.company_id == company_id,
+        Barber.is_active == True,
+    ).all()
     top_barbers = []
     for b in barbers:
         b_service_real = sum((s.real_income for s in sales if s.barber_id == b.id), Decimal("0"))
-        b_product_real = sum(
-            ((ps.subtotal - ps.barber_commission_amount) for ps in product_sales if ps.barber_id == b.id),
-            Decimal("0"),
-        )
         top_barbers.append({
             "barber_id": b.id,
             "name": b.name,

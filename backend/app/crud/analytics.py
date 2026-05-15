@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import func, extract
+from sqlalchemy import func
 from datetime import datetime
 from decimal import Decimal
 from ..models.sale import Sale
@@ -17,9 +17,13 @@ def _month_bounds(month: str):
     return start, end
 
 
-def get_client_metrics(db: Session, month: str) -> dict:
+def get_client_metrics(db: Session, company_id: int, month: str) -> dict:
     start, end = _month_bounds(month)
-    sales = db.query(Sale).filter(Sale.date >= start, Sale.date <= end).all()
+    sales = db.query(Sale).filter(
+        Sale.company_id == company_id,
+        Sale.date >= start,
+        Sale.date <= end,
+    ).all()
     new_clients = sum(1 for s in sales if not s.is_returning_client)
     returning_clients = sum(1 for s in sales if s.is_returning_client)
     total = new_clients + returning_clients
@@ -33,12 +37,18 @@ def get_client_metrics(db: Session, month: str) -> dict:
     }
 
 
-def get_cross_sell_metrics(db: Session, month: str) -> dict:
+def get_cross_sell_metrics(db: Session, company_id: int, month: str) -> dict:
     start, end = _month_bounds(month)
 
-    sales = db.query(Sale).filter(Sale.date >= start, Sale.date <= end).all()
+    sales = db.query(Sale).filter(
+        Sale.company_id == company_id,
+        Sale.date >= start,
+        Sale.date <= end,
+    ).all()
     product_sales = db.query(ProductSale).filter(
-        ProductSale.date >= start, ProductSale.date <= end
+        ProductSale.company_id == company_id,
+        ProductSale.date >= start,
+        ProductSale.date <= end,
     ).all()
 
     total_services = len(sales)
@@ -49,7 +59,10 @@ def get_cross_sell_metrics(db: Session, month: str) -> dict:
         else Decimal("0")
     )
 
-    barbers = db.query(Barber).filter(Barber.is_active == True).all()
+    barbers = db.query(Barber).filter(
+        Barber.company_id == company_id,
+        Barber.is_active == True,
+    ).all()
     by_barber = []
     for barber in barbers:
         barber_sales = [s for s in sales if s.barber_id == barber.id]
@@ -75,12 +88,13 @@ def get_cross_sell_metrics(db: Session, month: str) -> dict:
     }
 
 
-def get_top_courtesy_drinks(db: Session, month: str) -> dict:
+def get_top_courtesy_drinks(db: Session, company_id: int, month: str) -> dict:
     start, end = _month_bounds(month)
     rows = (
         db.query(InventoryMovement.item_id, InventoryItem.name, func.count().label("count"))
         .join(InventoryItem, InventoryMovement.item_id == InventoryItem.id)
         .filter(
+            InventoryItem.company_id == company_id,
             InventoryItem.category == "courtesy",
             InventoryMovement.movement_type == "out",
             InventoryMovement.reason.like("Cortesía por corte #%"),

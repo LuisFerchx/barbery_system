@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
 
@@ -12,6 +12,7 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: str
+    company_id: Optional[int] = None
 
 
 class UserUpdate(BaseModel):
@@ -25,6 +26,8 @@ class UserUpdate(BaseModel):
 class UserOut(UserBase):
     id: int
     is_active: bool
+    company_id: Optional[int] = None
+    company_name: Optional[str] = None
     created_at: datetime
 
     model_config = {"from_attributes": True}

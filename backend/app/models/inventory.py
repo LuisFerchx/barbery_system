@@ -7,6 +7,7 @@ class InventoryItem(Base):
     __tablename__ = "inventory_items"
 
     id = Column(Integer, primary_key=True, index=True)
+    company_id = Column(Integer, ForeignKey("companies.id"), nullable=False, index=True)
     name = Column(String(100), nullable=False)
     category = Column(String(20), nullable=False)  # merchandise, courtesy
     unit = Column(String(20), default="unidad")
@@ -17,6 +18,7 @@ class InventoryItem(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
+    company = relationship("Company")
     movements = relationship("InventoryMovement", back_populates="item")
     product_sales = relationship("ProductSale", back_populates="item")
 

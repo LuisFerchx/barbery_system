@@ -1,10 +1,22 @@
+export interface Company {
+  id: number
+  name: string
+  slug: string
+  phone?: string
+  address?: string
+  is_active: boolean
+  created_at: string
+}
+
 export interface User {
   id: number
   username: string
   email?: string
   full_name?: string
-  role: 'admin' | 'manager' | 'barber'
+  role: 'superadmin' | 'admin' | 'manager' | 'barber'
   is_active: boolean
+  company_id?: number
+  company_name?: string
   created_at: string
 }
 

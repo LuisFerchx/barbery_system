@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text, func
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text, ForeignKey, func
 from sqlalchemy.orm import relationship
 from ..database import Base
 
@@ -14,7 +14,9 @@ class Client(Base):
     notes = Column(Text, nullable=True)
     identification_number = Column(String(50), nullable=True)
     is_active = Column(Boolean, default=True)
+    company_id = Column(Integer, ForeignKey("companies.id"), nullable=False, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
+    company = relationship("Company")
     sales = relationship("Sale", back_populates="client")
     product_sales = relationship("ProductSale", back_populates="client")

@@ -6,7 +6,7 @@ from math import ceil
 from ....database import get_db
 from ....crud import product_sale as crud
 from ....schemas.product_sale import ProductSaleCreate, ProductSaleOut, ProductSaleListOut
-from ....security import get_current_user
+from ....security import get_current_user, get_company_id
 
 router = APIRouter()
 
@@ -29,10 +29,11 @@ def list_product_sales(
     item_id: Optional[int] = None,
     db: Session = Depends(get_db),
     _=Depends(get_current_user),
+    company_id: int = Depends(get_company_id),
 ):
     skip = (page - 1) * page_size
     total, items = crud.get_product_sales(
-        db, skip=skip, limit=page_size,
+        db, company_id, skip=skip, limit=page_size,
         date_from=date_from, date_to=date_to,
         barber_id=barber_id, item_id=item_id,
     )
@@ -47,25 +48,40 @@ def list_product_sales(
 
 
 @router.post("/", response_model=ProductSaleOut)
-def create_product_sale(data: ProductSaleCreate, db: Session = Depends(get_db), _=Depends(get_current_user)):
+def create_product_sale(
+    data: ProductSaleCreate,
+    db: Session = Depends(get_db),
+    _=Depends(get_current_user),
+    company_id: int = Depends(get_company_id),
+):
     try:
-        ps = crud.create_product_sale(db, data)
+        ps = crud.create_product_sale(db, company_id, data)
     except ValueError as e:
         raise HTTPException(400, str(e))
     return ProductSaleOut(**_enrich(ps))
 
 
 @router.get("/{ps_id}", response_model=ProductSaleOut)
-def get_product_sale(ps_id: int, db: Session = Depends(get_db), _=Depends(get_current_user)):
-    ps = crud.get_product_sale(db, ps_id)
+def get_product_sale(
+    ps_id: int,
+    db: Session = Depends(get_db),
+    _=Depends(get_current_user),
+    company_id: int = Depends(get_company_id),
+):
+    ps = crud.get_product_sale(db, company_id, ps_id)
     if not ps:
         raise HTTPException(404, "Venta de producto no encontrada")
     return ProductSaleOut(**_enrich(ps))
 
 
 @router.delete("/{ps_id}")
-def delete_product_sale(ps_id: int, db: Session = Depends(get_db), _=Depends(get_current_user)):
-    obj = crud.delete_product_sale(db, ps_id)
+def delete_product_sale(
+    ps_id: int,
+    db: Session = Depends(get_db),
+    _=Depends(get_current_user),
+    company_id: int = Depends(get_company_id),
+):
+    obj = crud.delete_product_sale(db, company_id, ps_id)
     if not obj:
         raise HTTPException(404, "Venta de producto no encontrada")
     return {"ok": True}
