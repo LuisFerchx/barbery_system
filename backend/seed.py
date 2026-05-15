@@ -8,7 +8,6 @@ import os
 from decimal import Decimal
 
 sys.path.insert(0, os.path.dirname(__file__))
-os.environ.setdefault("DATABASE_URL", "sqlite:///./barberia.db")
 
 from app.database import SessionLocal, engine, Base
 from app.models import (
