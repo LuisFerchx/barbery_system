@@ -40,4 +40,5 @@ def me(current_user=Depends(get_current_user)):
     out = UserOut.model_validate(current_user)
     if current_user.company:
         out.company_name = current_user.company.name
+        out.commission_by_service = current_user.company.commission_by_service
     return out

@@ -6,7 +6,7 @@ import Table from '../components/ui/Table'
 import type { Company } from '../types'
 import toast from 'react-hot-toast'
 
-const EMPTY_FORM = { name: '', slug: '', phone: '', address: '', is_active: true }
+const EMPTY_FORM = { name: '', slug: '', phone: '', address: '', is_active: true, commission_by_service: false }
 const EMPTY_ADMIN = { username: '', password: '', full_name: '', email: '' }
 
 function slugify(text: string) {
@@ -43,7 +43,7 @@ export default function Companies() {
 
   const openEdit = (c: Company) => {
     setEditing(c)
-    setForm({ name: c.name, slug: c.slug, phone: c.phone || '', address: c.address || '', is_active: c.is_active })
+    setForm({ name: c.name, slug: c.slug, phone: c.phone || '', address: c.address || '', is_active: c.is_active, commission_by_service: c.commission_by_service })
     setShowModal(true)
   }
 
@@ -64,6 +64,7 @@ export default function Companies() {
           slug: form.slug,
           phone: form.phone || undefined,
           address: form.address || undefined,
+          commission_by_service: form.commission_by_service,
           admin: createAdmin
             ? { ...adminForm, role: 'admin' }
             : undefined,
@@ -241,15 +242,29 @@ export default function Companies() {
           )}
 
           {editing && (
-            <div className="flex items-center gap-3">
-              <input
-                type="checkbox"
-                id="is_active"
-                checked={form.is_active}
-                onChange={e => setForm(prev => ({ ...prev, is_active: e.target.checked }))}
-                className="w-4 h-4 cursor-pointer"
-              />
-              <label htmlFor="is_active" className="text-xs cursor-pointer" style={{ color: 'var(--text-muted)' }}>Empresa activa</label>
+            <div className="space-y-3" style={{ borderTop: '1px solid var(--surface-border)', paddingTop: '0.75rem' }}>
+              <div className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  id="is_active"
+                  checked={form.is_active}
+                  onChange={e => setForm(prev => ({ ...prev, is_active: e.target.checked }))}
+                  className="w-4 h-4 cursor-pointer"
+                />
+                <label htmlFor="is_active" className="text-xs cursor-pointer" style={{ color: 'var(--text-muted)' }}>Empresa activa</label>
+              </div>
+              <div className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  id="commission_by_service"
+                  checked={form.commission_by_service}
+                  onChange={e => setForm(prev => ({ ...prev, commission_by_service: e.target.checked }))}
+                  className="w-4 h-4 cursor-pointer"
+                />
+                <label htmlFor="commission_by_service" className="text-xs cursor-pointer" style={{ color: 'var(--text-muted)' }}>
+                  Comisión por servicio <span style={{ opacity: 0.7 }}>(usa comisión del catálogo en lugar del barbero)</span>
+                </label>
+              </div>
             </div>
           )}
           <div className="flex justify-end gap-3 pt-2">

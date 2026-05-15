@@ -28,6 +28,7 @@ class UserOut(UserBase):
     is_active: bool
     company_id: Optional[int] = None
     company_name: Optional[str] = None
+    commission_by_service: Optional[bool] = None
     created_at: datetime
 
     model_config = {"from_attributes": True}

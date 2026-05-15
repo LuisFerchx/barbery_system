@@ -8,6 +8,7 @@ class CompanyBase(BaseModel):
     slug: str
     phone: Optional[str] = None
     address: Optional[str] = None
+    commission_by_service: bool = False
 
 
 class CompanyCreate(CompanyBase):
@@ -20,6 +21,7 @@ class CompanyUpdate(BaseModel):
     phone: Optional[str] = None
     address: Optional[str] = None
     is_active: Optional[bool] = None
+    commission_by_service: Optional[bool] = None
 
 
 class CompanyOut(CompanyBase):

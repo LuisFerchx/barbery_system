@@ -5,6 +5,7 @@ export interface Company {
   phone?: string
   address?: string
   is_active: boolean
+  commission_by_service: boolean
   created_at: string
 }
 
@@ -17,6 +18,7 @@ export interface User {
   is_active: boolean
   company_id?: number
   company_name?: string
+  commission_by_service?: boolean
   created_at: string
 }
 
@@ -48,6 +50,8 @@ export interface ServiceCatalog {
   name: string
   category: 'haircut' | 'beard' | 'combo' | 'other'
   price: number
+  commission_rate?: number | null
+  duration?: number | null
   is_active: boolean
 }
 

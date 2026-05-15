@@ -7,6 +7,8 @@ class ServiceCreate(BaseModel):
     name: str
     category: str  # haircut, beard, combo, other
     price: Decimal
+    commission_rate: Optional[Decimal] = None
+    duration: Optional[int] = None
 
 
 class ServiceUpdate(BaseModel):
@@ -14,6 +16,8 @@ class ServiceUpdate(BaseModel):
     category: Optional[str] = None
     price: Optional[Decimal] = None
     is_active: Optional[bool] = None
+    commission_rate: Optional[Decimal] = None
+    duration: Optional[int] = None
 
 
 class ServiceOut(BaseModel):
@@ -21,6 +25,8 @@ class ServiceOut(BaseModel):
     name: str
     category: str
     price: Decimal
+    commission_rate: Optional[Decimal] = None
+    duration: Optional[int] = None
     is_active: bool
 
     model_config = {"from_attributes": True}
