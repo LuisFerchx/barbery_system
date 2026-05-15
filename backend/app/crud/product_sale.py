@@ -64,7 +64,7 @@ def create_product_sale(db: Session, company_id: int, data: ProductSaleCreate):
         raise ValueError("Item de inventario no encontrado")
 
     subtotal = (data.quantity * data.unit_price).quantize(Decimal("0.01"))
-    barber_commission = (subtotal * barber.commission_rate).quantize(Decimal("0.01"))
+    barber_commission = Decimal("0.00")
 
     db_obj = ProductSale(
         company_id=company_id,

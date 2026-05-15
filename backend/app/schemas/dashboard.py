@@ -40,5 +40,7 @@ class DashboardSummary(BaseModel):
     taxes_reserved: Decimal
     net_profit: Decimal
     split_breakdown: SplitBreakdown
+    cash_register_adjustments: Decimal
+    cash_closings_count: int
     inventory_alerts: List[InventoryAlert]
     top_barbers: List[TopBarber]

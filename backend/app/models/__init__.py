@@ -10,6 +10,7 @@ from .sale import Sale
 from .config import IncomeSplitConfig, PaymentMethodConfig
 from .expense import Expense
 from .manual import OperatingManualEntry
+from .cash_register import CashRegisterClosing
 
 __all__ = [
     "Company",
@@ -24,4 +25,5 @@ __all__ = [
     "IncomeSplitConfig", "PaymentMethodConfig",
     "Expense",
     "OperatingManualEntry",
+    "CashRegisterClosing",
 ]

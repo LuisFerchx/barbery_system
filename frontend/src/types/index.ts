@@ -6,6 +6,9 @@ export interface Company {
   address?: string
   is_active: boolean
   commission_by_service: boolean
+  open_hour?: string | null
+  close_hour?: string | null
+  operating_days?: string | null
   created_at: string
 }
 
@@ -205,9 +208,35 @@ export interface DashboardSummary {
   operating_profit: number
   taxes_reserved: number
   net_profit: number
+  cash_register_adjustments: number
+  cash_closings_count: number
   split_breakdown: SplitBreakdown
   inventory_alerts: InventoryAlert[]
   top_barbers: TopBarber[]
+}
+
+export interface CashSummary {
+  period_from: string
+  period_to: string
+  sales_cash: number
+  product_sales_cash: number
+  expenses_cash: number
+  expected_cash: number
+}
+
+export interface CashRegisterClosing {
+  id: number
+  closed_at: string
+  period_from: string
+  period_to: string
+  sales_cash: number
+  product_sales_cash: number
+  expenses_cash: number
+  expected_cash: number
+  actual_cash: number
+  discrepancy: number
+  notes?: string
+  closed_by_user_id: number
 }
 
 export interface ClientMetrics {

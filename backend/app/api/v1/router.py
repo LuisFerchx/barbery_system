@@ -5,7 +5,7 @@ from .endpoints import (
     sales, product_sales,
     catalog, inventory,
     expenses, analytics, dashboard,
-    config, manual, companies,
+    config, manual, companies, cash_register,
 )
 
 api_router = APIRouter()
@@ -24,3 +24,4 @@ api_router.include_router(analytics.router, prefix="/analytics", tags=["analytic
 api_router.include_router(dashboard.router, prefix="/dashboard", tags=["dashboard"])
 api_router.include_router(config.router, prefix="/config", tags=["config"])
 api_router.include_router(manual.router, prefix="/manual", tags=["manual"])
+api_router.include_router(cash_register.router, prefix="/cash-register", tags=["cash-register"])

@@ -137,4 +137,12 @@ export const companiesApi = {
   setup: (data: unknown) => api.post('/companies/setup/', data),
   update: (id: number, data: unknown) => api.put(`/companies/${id}`, data),
   createUser: (companyId: number, data: unknown) => api.post(`/companies/${companyId}/users/`, data),
+  getMe: () => api.get('/companies/me'),
+  updateMe: (data: unknown) => api.put('/companies/me', data),
+}
+
+export const cashRegisterApi = {
+  summary: () => api.get('/cash-register/summary/'),
+  close: (data: { actual_cash: number; notes?: string }) => api.post('/cash-register/close/', data),
+  closings: () => api.get('/cash-register/closings/'),
 }

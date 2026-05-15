@@ -10,7 +10,7 @@ from ....models.company import Company
 from ....models.user import User
 from ....schemas.company import CompanyCreate, CompanyUpdate, CompanyOut, CompanySetupCreate
 from ....schemas.user import UserCreate, UserOut
-from ....security import require_superadmin, hash_password
+from ....security import require_superadmin, require_admin, hash_password
 
 router = APIRouter()
 
@@ -25,6 +25,30 @@ def create_company(data: CompanyCreate, db: Session = Depends(get_db), _=Depends
     if crud.get_company_by_slug(db, data.slug):
         raise HTTPException(400, f"El slug '{data.slug}' ya está en uso")
     return crud.create_company(db, data)
+
+
+@router.get("/me", response_model=CompanyOut)
+def get_my_company(db: Session = Depends(get_db), current_user=Depends(require_admin)):
+    if not current_user.company_id:
+        raise HTTPException(400, "Usuario sin empresa asignada")
+    obj = crud.get_company(db, current_user.company_id)
+    if not obj:
+        raise HTTPException(404, "Empresa no encontrada")
+    return obj
+
+
+@router.put("/me", response_model=CompanyOut)
+def update_my_company(
+    data: CompanyUpdate,
+    db: Session = Depends(get_db),
+    current_user=Depends(require_admin),
+):
+    if not current_user.company_id:
+        raise HTTPException(400, "Usuario sin empresa asignada")
+    obj = crud.update_company(db, current_user.company_id, data)
+    if not obj:
+        raise HTTPException(404, "Empresa no encontrada")
+    return obj
 
 
 @router.get("/{company_id}", response_model=CompanyOut)

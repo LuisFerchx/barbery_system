@@ -134,7 +134,11 @@ export default function Clients() {
         </div>
       )
     }},
-    { key: 'email', label: 'Email', render: (v: string | null) => v || <span style={{ color: 'var(--text-muted)' }}>—</span> },
+    { key: 'identification_number', label: 'Identificación', render: (v: string | null) => (
+      v
+        ? <span className="font-mono text-xs" style={{ color: 'var(--text-secondary)' }}>{v}</span>
+        : <span style={{ color: 'var(--text-muted)' }}>—</span>
+    )},
     { key: 'total_sales', label: 'Visitas', render: (v: number) => (
       <span className="font-mono text-sm" style={{ color: 'var(--gold-400)' }}>{v ?? 0}</span>
     )},
