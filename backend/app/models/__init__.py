@@ -11,6 +11,7 @@ from .config import IncomeSplitConfig, PaymentMethodConfig
 from .expense import Expense
 from .manual import OperatingManualEntry
 from .cash_register import CashRegisterClosing
+from .appointment import Appointment
 
 __all__ = [
     "Company",
@@ -26,4 +27,5 @@ __all__ = [
     "Expense",
     "OperatingManualEntry",
     "CashRegisterClosing",
+    "Appointment",
 ]

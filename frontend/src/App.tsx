@@ -18,6 +18,8 @@ import ProductSales from './pages/ProductSales'
 import Companies from './pages/Companies'
 import CompanySettings from './pages/CompanySettings'
 import CajaChica from './pages/CajaChica'
+import CitasList from './pages/CitasList'
+import CitasCalendar from './pages/CitasCalendar'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -59,6 +61,8 @@ function AppRoutes() {
         <Route path="product-sales" element={<ProductSales />} />
         <Route path="company-settings" element={<CompanySettings />} />
         <Route path="caja-chica" element={<CajaChica />} />
+        <Route path="citas" element={<CitasList />} />
+        <Route path="citas/calendario" element={<CitasCalendar />} />
         <Route path="companies" element={<SuperadminRoute><Companies /></SuperadminRoute>} />
       </Route>
     </Routes>
