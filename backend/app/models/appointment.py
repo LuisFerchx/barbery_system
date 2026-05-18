@@ -14,6 +14,7 @@ class Appointment(Base):
     scheduled_at = Column(DateTime(timezone=True), nullable=False, index=True)
     end_at = Column(DateTime(timezone=True), nullable=False)
     status = Column(String(20), nullable=False, default="pending")
+    code = Column(String(12), nullable=True, unique=True, index=True)
     notes = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

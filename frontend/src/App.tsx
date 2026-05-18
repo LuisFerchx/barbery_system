@@ -20,6 +20,8 @@ import CompanySettings from './pages/CompanySettings'
 import CajaChica from './pages/CajaChica'
 import CitasList from './pages/CitasList'
 import CitasCalendar from './pages/CitasCalendar'
+import PublicBooking from './pages/PublicBooking'
+import AppointmentLookup from './pages/AppointmentLookup'
 
 /**
  * Guards a route by requiring an authenticated user and renders its children when allowed.
@@ -58,6 +60,8 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      <Route path="/agendar/:slug" element={<PublicBooking />} />
+      <Route path="/mi-cita/:code" element={<AppointmentLookup />} />
       <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>
         <Route index element={<IndexRedirect />} />
         <Route path="sales/new" element={<NewSale />} />
