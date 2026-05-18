@@ -1,19 +1,13 @@
-version: '3.9'
-
 services:
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8001 --reload
-    environment:
-      DATABASE_URL: sqlite:///./barberia.db
-      SECRET_KEY: ${SECRET_KEY:-dev_secret_change_in_prod}
-      CORS_ORIGINS: '["http://localhost:5173","http://localhost:3000","http://100.48.11.7:5173"]'
-    volumes:
-      - ./backend:/app
+    env_file:
+      - ./backend/.env
     ports:
       - "8001:8001"
+    restart: unless-stopped
 
   frontend:
     build:
@@ -23,4 +17,4 @@ services:
       - "8002:80"
     depends_on:
       - backend
-
+    restart: unless-stopped

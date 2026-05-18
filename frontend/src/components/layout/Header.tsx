@@ -3,15 +3,17 @@ import { useAuth } from '../../context/AuthContext'
 import { useLocation } from 'react-router-dom'
 
 const TITLES: Record<string, string> = {
-  '/':            'Dashboard',
-  '/sales':       'Ventas',
-  '/barbers':     'Barberos',
-  '/catalog':     'Servicios y Productos',
-  '/inventory':   'Inventario',
-  '/accounting':  'Contabilidad',
-  '/transfers':   'Transferencias',
-  '/debts':       'Deudas',
-  '/admin':       'Administración',
+  '/':                    'Dashboard',
+  '/sales':               'Ventas',
+  '/barbers':             'Barberos',
+  '/catalog':             'Servicios y Productos',
+  '/inventory':           'Inventario',
+  '/accounting':          'Contabilidad',
+  '/transfers':           'Transferencias',
+  '/debts':               'Deudas',
+  '/admin':               'Administración',
+  '/citas/calendario':    'Calendario de Citas',
+  '/citas':               'Citas del Día',
 }
 
 interface Props {

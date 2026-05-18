@@ -146,3 +146,13 @@ export const cashRegisterApi = {
   close: (data: { actual_cash: number; notes?: string }) => api.post('/cash-register/close/', data),
   closings: () => api.get('/cash-register/closings/'),
 }
+
+export const appointmentsApi = {
+  list: (params?: Record<string, unknown>) => api.get('/appointments/', { params }),
+  get: (id: number) => api.get(`/appointments/${id}`),
+  create: (data: unknown) => api.post('/appointments/', data),
+  update: (id: number, data: unknown) => api.put(`/appointments/${id}`, data),
+  reschedule: (id: number, data: { scheduled_at: string }) =>
+    api.post(`/appointments/${id}/reschedule`, data),
+  delete: (id: number) => api.delete(`/appointments/${id}`),
+}

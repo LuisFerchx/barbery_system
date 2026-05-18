@@ -290,3 +290,29 @@ export interface TokenOut {
   refresh_token: string
   token_type: string
 }
+
+export interface Appointment {
+  id: number
+  company_id: number
+  client_id?: number | null
+  client_name?: string | null
+  barber_id: number
+  barber_name: string
+  service_id: number
+  service_name: string
+  duration_minutes: number
+  scheduled_at: string
+  end_at: string
+  status: 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'no_show'
+  notes?: string | null
+  created_at: string
+  updated_at?: string | null
+}
+
+export interface AppointmentListOut {
+  items: Appointment[]
+  total: number
+  page: number
+  page_size: number
+  pages: number
+}
