@@ -24,16 +24,35 @@ const STATUS_COLORS: Record<string, { bg: string; color: string }> = {
 
 const STATUS_FILTERS = ['todos', 'pending', 'confirmed', 'completed', 'cancelled', 'no_show']
 
+/**
+ * Get the current date in YYYY-MM-DD format.
+ *
+ * @returns A string with the current date formatted as `YYYY-MM-DD`.
+ */
 function todayStr() {
   return new Date().toISOString().slice(0, 10)
 }
 
+/**
+ * Compute the date offset by a given number of days from a base `YYYY-MM-DD` string.
+ *
+ * @param base - Base date in `YYYY-MM-DD` format interpreted as UTC midnight
+ * @param days - Number of days to add (use a negative value to subtract days)
+ * @returns The resulting date as a `YYYY-MM-DD` string
+ */
 function offsetDate(base: string, days: number) {
   const d = new Date(base + 'T00:00:00Z')
   d.setUTCDate(d.getUTCDate() + days)
   return d.toISOString().slice(0, 10)
 }
 
+/**
+ * Renders the Citas (appointments) page: a filterable table of appointments with controls to create, view, reschedule, and cancel.
+ *
+ * Loads appointments for the selected date (with optional barber and status filters) and active barbers from the API; updates the list after mutations and displays toast notifications on success or error.
+ *
+ * @returns The CitasList React element
+ */
 export default function CitasList() {
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [barbers, setBarbers] = useState<Barber[]>([])
@@ -252,6 +271,12 @@ export default function CitasList() {
   )
 }
 
+/**
+ * Formats an ISO date-time string into an `HH:MM` time using UTC.
+ *
+ * @param iso - An ISO 8601 date-time string (or any string accepted by `Date`).
+ * @returns The UTC time portion as `HH:MM`, zero-padded.
+ */
 function fmtTime(iso: string) {
   const d = new Date(iso)
   return `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`

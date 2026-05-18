@@ -35,6 +35,11 @@ const STATUS_COLORS: Record<string, string> = {
   no_show: '#9ca3af',
 }
 
+/**
+ * Generate 15-minute time slots for a full day in `HH:MM` format.
+ *
+ * @returns An array of time strings from `00:00` to `23:45` at 15-minute intervals (e.g., `00:00`, `00:15`, …, `23:45`)
+ */
 function generateTimeSlots(): string[] {
   const slots: string[] = []
   for (let h = 0; h < 24; h++) {
@@ -47,6 +52,24 @@ function generateTimeSlots(): string[] {
 
 const TIME_SLOTS = generateTimeSlots()
 
+/**
+ * Render a modal for creating, viewing, and rescheduling appointments.
+ *
+ * The component manages local state for selectable barbers, clients, and services,
+ * provides form controls for creating or rescheduling an appointment, displays
+ * appointment details in view mode, and performs create/reschedule/status/cancel
+ * actions via the appointments API. It also exposes a Google Calendar link for a shown appointment.
+ *
+ * @param open - Whether the modal is visible
+ * @param onClose - Callback to close the modal
+ * @param mode - One of `'create' | 'view' | 'reschedule'` to select the modal behavior
+ * @param appointment - Appointment to display or reschedule (required for `view` and `reschedule` modes)
+ * @param defaultDate - Optional initial date for create/reschedule forms in `YYYY-MM-DD` format
+ * @param defaultTime - Optional initial time for create/reschedule forms in `HH:MM` format
+ * @param onSaved - Callback invoked after a successful create, reschedule, status change, or cancellation
+ * @param onReschedule - Optional callback invoked when the user requests to reschedule from view mode
+ * @returns The modal's JSX element rendering the appointment UI for the selected mode
+ */
 export default function CitaModal({ open, onClose, mode, appointment, defaultDate, defaultTime, onSaved, onReschedule }: Props) {
   const [barbers, setBarbers] = useState<Barber[]>([])
   const [clients, setClients] = useState<Client[]>([])
@@ -366,10 +389,22 @@ export default function CitaModal({ open, onClose, mode, appointment, defaultDat
   )
 }
 
+/**
+ * Convert an ISO datetime string into the Google Calendar datetime format `YYYYMMDDTHHMMSSZ`.
+ *
+ * @param iso - An ISO 8601 datetime string or any value accepted by the Date constructor
+ * @returns The input datetime formatted as `YYYYMMDDTHHMMSSZ` (UTC)
+ */
 function toGCalDate(iso: string): string {
   return new Date(iso).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z')
 }
 
+/**
+ * Builds a Google Calendar "Create Event" URL populated with appointment details.
+ *
+ * @param appt - Appointment whose fields (service name, client name, barber name, duration, notes, scheduled_at, end_at) are used to populate the calendar entry
+ * @returns A URL string that opens Google Calendar's event creation form with the appointment title, start/end datetimes, and a details body
+ */
 function buildGCalUrl(appt: Appointment): string {
   const text = appt.client_name
     ? `${appt.service_name} – ${appt.client_name}`
@@ -391,11 +426,25 @@ function buildGCalUrl(appt: Appointment): string {
   )
 }
 
+/**
+ * Format an ISO datetime string to a UTC time in `HH:MM` format.
+ *
+ * @param iso - The ISO 8601 datetime string to format
+ * @returns The UTC time portion formatted as `HH:MM`
+ */
 function fmtTime(iso: string) {
   const d = new Date(iso)
   return `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`
 }
 
+/**
+ * Render a compact information row with an icon, a muted label, and a primary-value line.
+ *
+ * @param icon - Visual element displayed at the start of the row
+ * @param label - Small, muted descriptor text shown above the value
+ * @param value - Primary text displayed prominently below the label
+ * @returns A JSX element representing the labeled info row
+ */
 function InfoRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
     <div className="flex items-start gap-3">
@@ -408,6 +457,16 @@ function InfoRow({ icon, label, value }: { icon: React.ReactNode; label: string;
   )
 }
 
+/**
+ * Renders a compact action button that displays an icon and label with themed coloring and disabled styling.
+ *
+ * @param icon - Icon node rendered to the left of the label
+ * @param label - Text shown inside the button
+ * @param color - Base color used for text, border, and subtle background tint
+ * @param onClick - Click handler invoked when the button is pressed
+ * @param disabled - When true, disables interaction and applies disabled styles
+ * @returns The button element with icon, label, and theme-aware styles
+ */
 function ActionBtn({ icon, label, color, onClick, disabled }: {
   icon: React.ReactNode; label: string; color: string; onClick: () => void; disabled: boolean
 }) {

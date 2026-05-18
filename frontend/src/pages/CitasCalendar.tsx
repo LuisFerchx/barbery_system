@@ -52,25 +52,54 @@ const START_HOUR = 7
 const END_HOUR = 22
 const HOURS = Array.from({ length: END_HOUR - START_HOUR }, (_, i) => START_HOUR + i)
 
+/**
+ * Format a Date as an ISO date string in the `yyyy-MM-dd` format using local time.
+ *
+ * @param d - The Date to format
+ * @returns The date formatted as `yyyy-MM-dd`
+ */
 function isoDate(d: Date) {
   return format(d, 'yyyy-MM-dd')
 }
 
+/**
+ * Format an ISO date/time string into an `HH:mm` time using UTC hours and minutes.
+ *
+ * @param iso - An ISO-8601 datetime string (or any string parseable by `Date`); interpreted in UTC
+ * @returns The time portion formatted as `HH:mm` (UTC)
+ */
 function fmtTime(iso: string) {
   const d = new Date(iso)
   return `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`
 }
 
+/**
+ * Compute the vertical pixel offset for an appointment's start time within the calendar time grid.
+ *
+ * @param iso - ISO 8601 datetime string for the appointment start (interpreted in UTC)
+ * @returns The top offset in pixels from the start of the visible grid; `0` if the time is before `START_HOUR`
+ */
 function apptTopPx(iso: string): number {
   const d = new Date(iso)
   const mins = d.getUTCHours() * 60 + d.getUTCMinutes() - START_HOUR * 60
   return Math.max(0, (mins / 60) * HOUR_HEIGHT)
 }
 
+/**
+ * Compute the vertical height in pixels for an appointment block based on its duration.
+ *
+ * @param durationMinutes - Appointment duration in minutes
+ * @returns The height in pixels, with a minimum of `22` px
+ */
 function apptHeightPx(durationMinutes: number): number {
   return Math.max(22, (durationMinutes / 60) * HOUR_HEIGHT)
 }
 
+/**
+ * Render the current time indicator line positioned within the calendar's hour grid.
+ *
+ * @returns A DOM element showing a horizontal line with a small circular marker at the current UTC time relative to `START_HOUR`–`END_HOUR`, or `null` if the current time falls outside the visible grid.
+ */
 function TodayLine() {
   const now = new Date()
   const mins = now.getUTCHours() * 60 + now.getUTCMinutes() - START_HOUR * 60
@@ -87,6 +116,11 @@ function TodayLine() {
   )
 }
 
+/**
+ * Render a compact legend of appointment statuses with colored dots and labels.
+ *
+ * @returns A JSX element containing a row of colored indicators and their corresponding status labels.
+ */
 function Legend() {
   return (
     <div className="flex flex-wrap gap-4">
@@ -100,6 +134,14 @@ function Legend() {
   )
 }
 
+/**
+ * Renders an appointments calendar with month, week, day, and agenda views.
+ *
+ * The component provides navigation, date-range-aware appointment loading and grouping,
+ * a status legend, and controls to create, view, or reschedule appointments via a modal.
+ *
+ * @returns A JSX element representing the appointments calendar UI
+ */
 export default function CitasCalendar() {
   const [view, setView] = useState<CalendarView>('month')
   const [currentDate, setCurrentDate] = useState(new Date())
