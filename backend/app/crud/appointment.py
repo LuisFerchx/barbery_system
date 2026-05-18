@@ -17,6 +17,21 @@ ACTIVE_STATUSES = ("pending", "confirmed")
 
 
 def _enrich(appt: Appointment) -> dict:
+    """
+    Build a serializable dictionary representing an Appointment with related display fields.
+    
+    Creates a dict containing all columns from the Appointment row plus:
+    - `barber_name`: "name lastname" when a barber is present, otherwise "".
+    - `client_name`: "name lastname" when a client is present, otherwise `None`.
+    - `service_name`: the service name when present, otherwise "".
+    - `duration_minutes`: the service duration when set, otherwise the module DEFAULT_DURATION.
+    
+    Parameters:
+        appt (Appointment): The Appointment ORM instance to serialize.
+    
+    Returns:
+        dict: A mapping of appointment column names to values extended with the additional keys described above.
+    """
     d = {c.name: getattr(appt, c.name) for c in appt.__table__.columns}
     d["barber_name"] = f"{appt.barber.name} {appt.barber.lastname}" if appt.barber else ""
     d["client_name"] = (
@@ -28,6 +43,15 @@ def _enrich(appt: Appointment) -> dict:
 
 
 def _load_with_relations(q):
+    """
+    Attach eager-loading options to an Appointment query for barber, client, and service relationships.
+    
+    Parameters:
+        q: A SQLAlchemy Query or selectable for Appointment.
+    
+    Returns:
+        The same query augmented with joinedload options for `barber`, `client`, and `service`.
+    """
     return q.options(
         joinedload(Appointment.barber),
         joinedload(Appointment.client),
@@ -45,7 +69,20 @@ DAY_MAP = {
 
 
 def _parse_operating_days(operating_days: Optional[str]) -> Optional[set]:
-    """Returns set of weekday ints (0=Mon..6=Sun) or None if field absent/unparseable."""
+    """
+    Parse a company's `operating_days` string into a set of weekday integers (0=Mon..6=Sun).
+    
+    Supports these input formats:
+    - 7-character bitmask of `0`/`1` (e.g., "1111100" for Mon–Fri).
+    - Comma-separated tokens (e.g., "mon,tue,wed" or Spanish names); tokens are resolved via `DAY_MAP`.
+    - JSON array of integers or strings (e.g., `[0,1,2]` or `["lunes","martes"]`).
+    
+    Parameters:
+        operating_days (Optional[str]): Raw operating-days value from the company configuration.
+    
+    Returns:
+        Optional[set]: A set of weekday integers (0=Mon..6=Sun) when parsing succeeds and yields at least one day, or `None` when the input is empty, unparseable, or yields no valid days.
+    """
     if not operating_days:
         return None
     s = operating_days.strip()
@@ -83,6 +120,18 @@ def _parse_operating_days(operating_days: Optional[str]) -> Optional[set]:
 
 
 def _validate_schedule(company: Company, scheduled_at: datetime, end_at: datetime) -> None:
+    """
+    Validate that an appointment's start and end datetimes comply with the company's operating hours and allowed weekdays.
+    
+    Parameters:
+        company (Company): Company record whose `open_hour`, `close_hour`, and `operating_days` are used for validation.
+        scheduled_at (datetime): Appointment start datetime.
+        end_at (datetime): Appointment end datetime.
+    
+    Raises:
+        ValueError: If `scheduled_at` is outside `company.open_hour`–`company.close_hour`.
+        ValueError: If `scheduled_at` falls on a weekday not listed in `company.operating_days`.
+    """
     appt_time = scheduled_at.time()
 
     if company.open_hour and company.close_hour:
@@ -111,6 +160,21 @@ def _check_barber_conflict(
     end_at: datetime,
     exclude_id: Optional[int] = None,
 ) -> None:
+    """
+    Raise if the barber has an active appointment that overlaps the given time window.
+    
+    Checks for appointments in ACTIVE_STATUSES for the specified company and barber whose time ranges intersect the interval [scheduled_at, end_at). If an overlapping appointment exists, raises a ValueError.
+    
+    Parameters:
+        company_id (int): Company identifier to scope the search.
+        barber_id (int): Barber identifier to check for conflicts.
+        scheduled_at (datetime): Proposed appointment start time.
+        end_at (datetime): Proposed appointment end time.
+        exclude_id (Optional[int]): Appointment id to ignore when checking (useful when rescheduling).
+    
+    Raises:
+        ValueError: If an overlapping active appointment is found for the barber.
+    """
     q = db.query(Appointment).filter(
         Appointment.company_id == company_id,
         Appointment.barber_id == barber_id,
@@ -135,6 +199,22 @@ def get_appointments(
     skip: int = 0,
     limit: int = 50,
 ) -> Tuple[int, List[Appointment]]:
+    """
+    Get appointments for a company filtered by date range and optional criteria.
+    
+    Parameters:
+        company_id (int): ID of the company whose appointments to query.
+        date (str, optional): Exact day in "YYYY-MM-DD" format; when provided, filters appointments from 00:00:00 to 23:59:59 UTC of that day.
+        date_from (datetime, optional): Inclusive lower bound for appointment `scheduled_at`.
+        date_to (datetime, optional): Inclusive upper bound for appointment `scheduled_at`.
+        barber_id (int, optional): Filter appointments for a specific barber.
+        status (str, optional): Filter appointments by exact status value.
+        skip (int, optional): Number of records to skip for pagination.
+        limit (int, optional): Maximum number of records to return.
+    
+    Returns:
+        tuple: A pair `(total, items)` where `total` is the total number of matching appointments and `items` is the list of `Appointment` objects for the requested page.
+    """
     q = db.query(Appointment).filter(Appointment.company_id == company_id)
 
     if date:
@@ -160,6 +240,14 @@ def get_appointments(
 
 
 def get_appointment(db: Session, company_id: int, appointment_id: int) -> Optional[Appointment]:
+    """
+    Retrieve a single appointment belonging to the specified company.
+    
+    The returned Appointment includes related barber, client, and service objects via eager loading.
+    
+    Returns:
+        Appointment | None: The appointment if found, `None` otherwise.
+    """
     return _load_with_relations(
         db.query(Appointment).filter(
             Appointment.id == appointment_id,
@@ -169,6 +257,19 @@ def get_appointment(db: Session, company_id: int, appointment_id: int) -> Option
 
 
 def create_appointment(db: Session, company_id: int, data: AppointmentCreate) -> Appointment:
+    """
+    Create a new appointment for the specified company after validating related entities, schedule constraints, and barber availability.
+    
+    Parameters:
+        company_id (int): ID of the company where the appointment will be created.
+        data (AppointmentCreate): Appointment payload containing service_id, barber_id, client_id (optional), scheduled_at, notes, etc.
+    
+    Returns:
+        Appointment: The newly created appointment, loaded with related barber, client, and service.
+    
+    Raises:
+        ValueError: If the service or barber is not found or inactive; if the provided client_id exists but the client is not found or inactive; if the appointment is outside company operating hours or operating days; or if the barber has a conflicting appointment.
+    """
     service = db.query(ServiceCatalog).filter(
         ServiceCatalog.id == data.service_id,
         ServiceCatalog.company_id == company_id,
@@ -225,6 +326,17 @@ def create_appointment(db: Session, company_id: int, data: AppointmentCreate) ->
 def reschedule_appointment(
     db: Session, company_id: int, appointment_id: int, data: AppointmentReschedule
 ) -> Optional[Appointment]:
+    """
+    Change an appointment's scheduled time and end time, revalidate the company's schedule and barber conflicts, and set the appointment status to "pending".
+    
+    Returns:
+    	Appointment: The updated appointment with related barber/client/service loaded if the appointment was found and updated.
+    	None: If no appointment with the given id and company_id exists.
+    
+    Raises:
+    	ValueError: If the appointment's current status is "cancelled", "completed", or "no_show".
+    	ValueError: If schedule validation or barber conflict checks fail.
+    """
     appt = db.query(Appointment).filter(
         Appointment.id == appointment_id,
         Appointment.company_id == company_id,
@@ -259,6 +371,21 @@ def reschedule_appointment(
 def update_appointment(
     db: Session, company_id: int, appointment_id: int, data: AppointmentUpdate
 ) -> Optional[Appointment]:
+    """
+    Apply partial updates to an existing appointment and return the refreshed record with related barber, client, and service loaded.
+    
+    Parameters:
+        db (Session): Database session used to load and persist the appointment.
+        company_id (int): Company identifier used to scope the appointment lookup.
+        appointment_id (int): Identifier of the appointment to update.
+        data (AppointmentUpdate): Partial update payload; only fields present in `data` are applied.
+    
+    Returns:
+        Appointment or None: The updated appointment with relations eager-loaded, or `None` if no matching appointment was found.
+    
+    Notes:
+        This function commits the changes to the database and does not perform schedule validation or conflict checks.
+    """
     appt = db.query(Appointment).filter(
         Appointment.id == appointment_id,
         Appointment.company_id == company_id,
@@ -275,6 +402,16 @@ def update_appointment(
 
 
 def cancel_appointment(db: Session, company_id: int, appointment_id: int) -> Optional[Appointment]:
+    """
+    Cancel an appointment by setting its status to "cancelled".
+    
+    Parameters:
+        company_id (int): ID of the company that owns the appointment.
+        appointment_id (int): ID of the appointment to cancel.
+    
+    Returns:
+        Appointment or None: The updated appointment with status "cancelled", or `None` if no matching appointment was found.
+    """
     appt = db.query(Appointment).filter(
         Appointment.id == appointment_id,
         Appointment.company_id == company_id,

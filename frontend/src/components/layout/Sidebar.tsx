@@ -37,6 +37,17 @@ interface Props {
   onClose: () => void
 }
 
+/**
+ * Render a responsive, role-aware navigation sidebar with a collapsible "Citas" section.
+ *
+ * The sidebar shows primary navigation, an expandable "Citas" group whose open state
+ * is persisted to `localStorage` (key: `citas-nav-open`), and role-specific links for
+ * `admin` and `superadmin`. It also displays the current user's name/role and a logout action.
+ *
+ * @param open - Whether the sidebar is visible (affects mobile overlay and transform).
+ * @param onClose - Callback invoked to close the sidebar (used by overlay, links, and mobile close button).
+ * @returns The sidebar JSX element.
+ */
 export default function Sidebar({ open, onClose }: Props) {
   const { user, logout } = useAuth()
   const location = useLocation()

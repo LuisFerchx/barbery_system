@@ -21,6 +21,13 @@ import CajaChica from './pages/CajaChica'
 import CitasList from './pages/CitasList'
 import CitasCalendar from './pages/CitasCalendar'
 
+/**
+ * Guards a route by requiring an authenticated user and renders its children when allowed.
+ *
+ * If authentication state is loading, displays a full-screen loading message. If no user is authenticated, redirects to `/login`.
+ *
+ * @returns The `children` elements when a user is authenticated; otherwise a redirect to `/login` or a loading indicator.
+ */
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
   if (loading) return <div className="flex items-center justify-center h-screen text-gray-400">Cargando...</div>
@@ -42,6 +49,11 @@ function SuperadminRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
+/**
+ * Defines the application's client-side route hierarchy, including protected and role-restricted routes.
+ *
+ * @returns The React element tree containing the configured <Routes> and their route guards.
+ */
 function AppRoutes() {
   return (
     <Routes>
