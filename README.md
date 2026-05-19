@@ -1,6 +1,6 @@
 <div align="center">
 
-  # Sistema de Gestión Barbería Hair Craft
+# Sistema de Gestión Barbería Hair Craft
 
   **Gestión integral de barberías — ventas, citas, inventario, contabilidad y más**
 
