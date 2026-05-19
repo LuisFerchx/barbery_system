@@ -4,6 +4,7 @@ from decimal import Decimal
 from datetime import datetime, timezone
 
 from ..models.cash_register import CashRegisterClosing
+from ..models.company import Company
 from ..models.sale import Sale
 from ..models.product_sale import ProductSale
 from ..models.expense import Expense
@@ -11,18 +12,29 @@ from ..schemas.cash_register import CashRegisterCloseIn
 
 
 def get_cash_summary(db: Session, company_id: int) -> dict:
-    # period_from = last closing or beginning of today
+    company = db.query(Company).filter(Company.id == company_id).first()
+    now = datetime.now(timezone.utc)
+    today = now.date()
+
+    if company and company.open_hour:
+        oh, om = map(int, company.open_hour.split(":"))
+        today_open = datetime(today.year, today.month, today.day, oh, om, tzinfo=timezone.utc)
+    else:
+        today_open = datetime(today.year, today.month, today.day, 0, 0, tzinfo=timezone.utc)
+
+    if company and company.close_hour:
+        ch, cm = map(int, company.close_hour.split(":"))
+        today_close = datetime(today.year, today.month, today.day, ch, cm, tzinfo=timezone.utc)
+    else:
+        today_close = now
+
     last = (
         db.query(func.max(CashRegisterClosing.closed_at))
         .filter(CashRegisterClosing.company_id == company_id)
         .scalar()
     )
-    now = datetime.now(timezone.utc)
-    if last is None:
-        today = now.replace(hour=0, minute=0, second=0, microsecond=0)
-        period_from = today
-    else:
-        period_from = last
+    period_from = last if (last is not None and last >= today_open) else today_open
+    period_to = max(period_from, min(now, today_close))
 
     sales_cash = (
         db.query(func.coalesce(func.sum(Sale.gross_total), 0))
@@ -30,7 +42,7 @@ def get_cash_summary(db: Session, company_id: int) -> dict:
             Sale.company_id == company_id,
             Sale.payment_method == "cash",
             Sale.date > period_from,
-            Sale.date <= now,
+            Sale.date <= period_to,
         )
         .scalar()
     )
@@ -40,7 +52,7 @@ def get_cash_summary(db: Session, company_id: int) -> dict:
             ProductSale.company_id == company_id,
             ProductSale.payment_method == "cash",
             ProductSale.date > period_from,
-            ProductSale.date <= now,
+            ProductSale.date <= period_to,
         )
         .scalar()
     )
@@ -50,7 +62,7 @@ def get_cash_summary(db: Session, company_id: int) -> dict:
             Expense.company_id == company_id,
             Expense.payment_method == "cash",
             Expense.date > period_from,
-            Expense.date <= now,
+            Expense.date <= period_to,
         )
         .scalar()
     )
@@ -62,7 +74,7 @@ def get_cash_summary(db: Session, company_id: int) -> dict:
 
     return {
         "period_from": period_from,
-        "period_to": now,
+        "period_to": period_to,
         "sales_cash": sales_cash.quantize(Decimal("0.01")),
         "product_sales_cash": product_sales_cash.quantize(Decimal("0.01")),
         "expenses_cash": expenses_cash.quantize(Decimal("0.01")),

@@ -274,7 +274,7 @@ export default function CitaModal({ open, onClose, mode, appointment, defaultDat
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="label">Fecha *</label>
-              <input type="date" className="input w-full" value={date} onChange={e => setDate(e.target.value)} />
+              <input type="date" className="input w-full" value={date} min={new Date().toISOString().slice(0, 10)} onChange={e => setDate(e.target.value)} />
             </div>
             <div>
               <label className="label">Hora *</label>
@@ -359,7 +359,7 @@ export default function CitaModal({ open, onClose, mode, appointment, defaultDat
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="label">Nueva fecha *</label>
-              <input type="date" className="input w-full" value={date} onChange={e => setDate(e.target.value)} />
+              <input type="date" className="input w-full" value={date} min={new Date().toISOString().slice(0, 10)} onChange={e => setDate(e.target.value)} />
             </div>
             <div>
               <label className="label">Nueva hora *</label>
