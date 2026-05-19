@@ -33,6 +33,9 @@ export default function AppointmentLookup() {
 
   useEffect(() => {
     if (!code) return
+    setLoading(true)
+    setError(null)
+    setAppt(null)
     bookingApi
       .getByCode(code)
       .then((r) => setAppt(r.data))
