@@ -34,7 +34,7 @@ def get_cash_summary(db: Session, company_id: int) -> dict:
         .scalar()
     )
     period_from = last if (last is not None and last >= today_open) else today_open
-    period_to = min(now, today_close)
+    period_to = max(period_from, min(now, today_close))
 
     sales_cash = (
         db.query(func.coalesce(func.sum(Sale.gross_total), 0))
