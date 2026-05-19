@@ -63,8 +63,10 @@ def get_available_slots(
     if not company.open_hour or not company.close_hour:
         return []
 
-    parsed_date = datetime.strptime(date_str, "%Y-%m-%d").date()
-
+    try:
+        parsed_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+    except ValueError:
+        return []
     allowed_days = _parse_operating_days(company.operating_days)
     if allowed_days is not None and parsed_date.weekday() not in allowed_days:
         return []
