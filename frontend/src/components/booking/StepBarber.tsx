@@ -33,15 +33,24 @@ export default function StepBarber({ barbers, selectedId, onSelect, onNext, onBa
                 border: selected ? '2px solid var(--gold-400)' : '1px solid var(--surface-border)',
               }}
             >
-              <div
-                className="w-14 h-14 rounded-full flex items-center justify-center text-lg font-bold"
-                style={{
-                  background: selected ? 'var(--gold-400)' : 'var(--surface-3)',
-                  color: selected ? '#000' : 'var(--text-secondary)',
-                }}
-              >
-                {b.name.charAt(0)}{b.lastname.charAt(0)}
-              </div>
+              {b.photo_url ? (
+                <img
+                  src={b.photo_url!}
+                  alt={b.name}
+                  className="w-14 h-14 rounded-full object-cover"
+                  style={{ border: selected ? '2px solid var(--gold-400)' : 'none' }}
+                />
+              ) : (
+                <div
+                  className="w-14 h-14 rounded-full flex items-center justify-center text-lg font-bold"
+                  style={{
+                    background: selected ? 'var(--gold-400)' : 'var(--surface-3)',
+                    color: selected ? '#000' : 'var(--text-secondary)',
+                  }}
+                >
+                  {b.name.charAt(0)}{b.lastname.charAt(0)}
+                </div>
+              )}
               <div className="text-center">
                 <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
                   {b.name}

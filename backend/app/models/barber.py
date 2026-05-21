@@ -12,6 +12,7 @@ class Barber(Base):
     phone = Column(String(20), nullable=True)
     commission_rate = Column(Numeric(5, 4), nullable=False, default=0.40)
     is_active = Column(Boolean, default=True)
+    photo_url = Column(String, nullable=True)
     company_id = Column(Integer, ForeignKey("companies.id"), nullable=False, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 

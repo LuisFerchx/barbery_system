@@ -11,6 +11,7 @@ class ShopPublicOut(BaseModel):
     open_hour: Optional[str] = None
     close_hour: Optional[str] = None
     operating_days: Optional[str] = None
+    logo_url: Optional[str] = None
     is_active: bool
 
     model_config = {"from_attributes": True}
@@ -20,6 +21,7 @@ class BarberPublicOut(BaseModel):
     id: int
     name: str
     lastname: str
+    photo_url: Optional[str] = None
 
     model_config = {"from_attributes": True}
 

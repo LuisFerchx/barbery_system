@@ -9,6 +9,7 @@ export interface Company {
   open_hour?: string | null
   close_hour?: string | null
   operating_days?: string | null
+  logo_url?: string | null
   created_at: string
 }
 
@@ -30,6 +31,7 @@ export interface Barber {
   name: string
   lastname: string
   phone?: string
+  photo_url?: string | null
   commission_rate: number
   is_active: boolean
   created_at: string

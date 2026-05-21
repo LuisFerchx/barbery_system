@@ -24,6 +24,7 @@ class BarberOut(BaseModel):
     name: str
     lastname: str
     phone: Optional[str] = None
+    photo_url: Optional[str] = None
     commission_rate: Decimal
     is_active: bool
     created_at: datetime

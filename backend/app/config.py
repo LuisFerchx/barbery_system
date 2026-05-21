@@ -14,6 +14,9 @@ class Settings(BaseSettings):
     DEBUG: bool = True
     ENVIRONMENT: str = "development"
     CORS_ORIGINS: str = '["http://localhost:5173","http://localhost:3000"]'
+    SUPABASE_URL: str = ""
+    SUPABASE_KEY: str = ""
+    SUPABASE_BUCKET: str = "barberia-assets"
 
     def get_cors_origins(self) -> List[str]:
         try:

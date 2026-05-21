@@ -54,15 +54,22 @@ export default function CompanySettings() {
   const [selectedDays, setSelectedDays] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [logoUrl, setLogoUrl] = useState<string | null>(null)
+  const [logoFile, setLogoFile] = useState<File | null>(null)
+  const [logoPreview, setLogoPreview] = useState<string | null>(null)
+  const [uploadingLogo, setUploadingLogo] = useState(false)
 
   if (user?.role !== 'admin') return <Navigate to="/" replace />
 
   useEffect(() => {
     companiesApi.getMe()
       .then(r => {
-        const { form: f, days } = fromCompany(r.data as Company)
+        const company = r.data as Company
+        const { form: f, days } = fromCompany(company)
         setForm(f)
         setSelectedDays(days)
+        setLogoUrl(company.logo_url ?? null)
+        setLogoPreview(company.logo_url ?? null)
       })
       .catch(() => toast.error('Error al cargar datos de la empresa'))
       .finally(() => setLoading(false))
@@ -96,6 +103,29 @@ export default function CompanySettings() {
     }
   }
 
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setLogoFile(file)
+    setLogoPreview(URL.createObjectURL(file))
+  }
+
+  const handleUploadLogo = async () => {
+    if (!logoFile) return
+    setUploadingLogo(true)
+    try {
+      const fd = new FormData()
+      fd.append('file', logoFile)
+      const r = await companiesApi.uploadLogo(fd)
+      const newUrl = (r.data as Company).logo_url ?? null
+      setLogoUrl(newUrl)
+      setLogoPreview(newUrl)
+      setLogoFile(null)
+      toast.success('Logo actualizado')
+    } catch { toast.error('Error al subir logo') }
+    finally { setUploadingLogo(false) }
+  }
+
   const f = (k: keyof Pick<Form, 'name' | 'phone' | 'address' | 'open_hour' | 'close_hour'>) => ({
     value: form[k] as string,
     onChange: (e: React.ChangeEvent<HTMLInputElement>) =>
@@ -122,6 +152,37 @@ export default function CompanySettings() {
           <h1 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>Mi Empresa</h1>
           <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Configura el perfil y horario del establecimiento</p>
         </div>
+      </div>
+
+      {/* Logo */}
+      <div className="card space-y-4">
+        <p className="text-xs font-semibold flex items-center gap-2" style={{ color: 'var(--text-muted)' }}>
+          <Building2 size={13} />LOGO DE LA EMPRESA
+        </p>
+        <div className="flex items-center gap-4">
+          {logoPreview ? (
+            <img src={logoPreview} alt="logo" className="w-16 h-16 rounded-xl object-cover" />
+          ) : (
+            <div className="w-16 h-16 rounded-xl flex items-center justify-center text-2xl font-bold"
+              style={{ background: 'rgba(200,134,14,0.15)', color: 'var(--gold-400)' }}>
+              {form.name.charAt(0) || '?'}
+            </div>
+          )}
+          <div className="flex gap-2">
+            <label className="btn-secondary text-xs cursor-pointer px-4 py-2">
+              Elegir imagen
+              <input type="file" accept="image/*" className="hidden" onChange={handleLogoChange} />
+            </label>
+            {logoFile && (
+              <button onClick={handleUploadLogo} disabled={uploadingLogo} className="btn-primary text-xs px-4">
+                {uploadingLogo ? 'Subiendo...' : 'Subir logo'}
+              </button>
+            )}
+          </div>
+        </div>
+        {logoUrl && !logoFile && (
+          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Logo actual guardado en Supabase.</p>
+        )}
       </div>
 
       {/* Información general */}
