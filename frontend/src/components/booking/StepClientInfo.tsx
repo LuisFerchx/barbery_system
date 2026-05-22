@@ -108,8 +108,8 @@ export default function StepClientInfo({ value, onChange, onNext, onBack }: Prop
               onChange={(e) => set('dialCode', e.target.value)}
               aria-label="Código de país"
               style={{
-                background: 'transparent',
-                color: 'var(--text-primary)',
+                background: '#1a1a1a',
+                color: '#f0ede8',
                 border: 'none',
                 outline: 'none',
                 padding: '10px 6px 10px 12px',
@@ -119,7 +119,7 @@ export default function StepClientInfo({ value, onChange, onNext, onBack }: Prop
               }}
             >
               {COUNTRIES.map(c => (
-                <option key={`${c.code}-${c.dial}`} value={c.dial}>
+                <option key={`${c.code}-${c.dial}`} value={c.dial} style={{ background: '#1a1a1a', color: '#f0ede8' }}>
                   {c.flag} {c.dial}
                 </option>
               ))}
