@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Clock, User, Scissors, Calendar, RefreshCw, XCircle, CheckCircle, AlertCircle, CalendarPlus, Share2, Copy, Check } from 'lucide-react'
+import { Clock, User, Scissors, Calendar, RefreshCw, XCircle, CheckCircle, AlertCircle, CalendarPlus, Share2, Copy, Check, X } from 'lucide-react'
 import QRCode from 'react-qr-code'
 import toast from 'react-hot-toast'
 import Modal from '../ui/Modal'
@@ -520,26 +520,68 @@ function SharePopover({ code, onClose }: { code: string; onClose: () => void }) 
   }
 
   return (
-    <>
-      <div className="fixed inset-0 z-40" onClick={onClose} />
+    <div
+      className="fixed inset-0 z-[200] flex items-center justify-center p-4"
+      style={{ background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(4px)' }}
+      onClick={onClose}
+    >
       <div
-        className="absolute bottom-full left-0 mb-2 z-50 rounded-xl p-4 flex flex-col gap-3"
-        style={{ minWidth: 220, background: 'var(--surface-1)', border: '1px solid var(--surface-border)', boxShadow: '0 8px 24px rgba(0,0,0,0.35)' }}
+        className="relative flex flex-col items-center gap-5 rounded-2xl p-6 w-full"
+        style={{
+          maxWidth: 320,
+          background: 'var(--surface-1)',
+          border: '1px solid var(--surface-border)',
+          boxShadow: '0 24px 64px rgba(0,0,0,0.5)',
+        }}
+        onClick={e => e.stopPropagation()}
       >
-        <div className="p-2 rounded-lg bg-white self-center">
-          <QRCode value={url} size={160} />
+        <button
+          onClick={onClose}
+          className="absolute top-3 right-3 flex items-center justify-center w-7 h-7 rounded-lg cursor-pointer transition-opacity hover:opacity-70"
+          style={{ background: 'var(--surface-2)', color: 'var(--text-muted)' }}
+          aria-label="Cerrar"
+        >
+          <X size={14} />
+        </button>
+
+        <div>
+          <p className="text-sm font-semibold text-center mb-0.5" style={{ color: 'var(--text-primary)' }}>
+            Compartir cita
+          </p>
+          <p className="text-xs text-center" style={{ color: 'var(--text-muted)' }}>
+            Escanea el QR o copia el enlace
+          </p>
         </div>
-        <p className="text-xs font-mono break-all text-center" style={{ color: 'var(--text-muted)' }}>
-          {url}
-        </p>
+
+        <div className="p-4 rounded-xl bg-white shadow-inner">
+          <QRCode value={url} size={180} />
+        </div>
+
+        <div
+          className="w-full rounded-lg px-3 py-2 text-center"
+          style={{ background: 'var(--surface-2)', border: '1px solid var(--surface-border)' }}
+        >
+          <p className="text-xs font-mono break-all" style={{ color: 'var(--text-muted)' }}>
+            {url}
+          </p>
+        </div>
+
         <button
           onClick={copyUrl}
-          className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-opacity hover:opacity-80 w-full"
-          style={{ background: 'rgba(200,134,14,0.12)', color: 'var(--gold-400)', border: '1px solid rgba(200,134,14,0.25)' }}
+          className="flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-xl text-sm font-semibold cursor-pointer transition-opacity hover:opacity-85"
+          style={{
+            background: copied ? 'rgba(74,222,128,0.15)' : 'rgba(200,134,14,0.15)',
+            color: copied ? '#4ade80' : 'var(--gold-400)',
+            border: `1px solid ${copied ? 'rgba(74,222,128,0.3)' : 'rgba(200,134,14,0.3)'}`,
+            transition: 'background 0.2s, color 0.2s, border-color 0.2s',
+          }}
         >
-          {copied ? <><Check size={13} /> Copiado!</> : <><Copy size={13} /> Copiar enlace</>}
+          {copied
+            ? <><Check size={15} /> Copiado!</>
+            : <><Copy size={15} /> Copiar enlace</>
+          }
         </button>
       </div>
-    </>
+    </div>
   )
 }
