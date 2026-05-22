@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Menu, Bell, QrCode, Copy, Check, X } from 'lucide-react'
 import QRCode from 'react-qr-code'
 import { useAuth } from '../../context/AuthContext'
@@ -117,7 +118,7 @@ function BookingQrModal({ slug, onClose }: { slug: string; onClose: () => void }
     })
   }
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-[200] flex items-center justify-center p-4"
       style={{ background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(4px)' }}
@@ -180,6 +181,7 @@ function BookingQrModal({ slug, onClose }: { slug: string; onClose: () => void }
           }
         </button>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
