@@ -22,6 +22,7 @@ export interface User {
   is_active: boolean
   company_id?: number
   company_name?: string
+  company_slug?: string
   commission_by_service?: boolean
   created_at: string
 }
