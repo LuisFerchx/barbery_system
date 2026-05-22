@@ -240,6 +240,14 @@ export default function CitasList() {
         emptyText="Sin citas para este día"
         actions={(row) => (
           <div className="flex items-center gap-1">
+            {row.code && (
+              <span
+                className="font-mono text-xs px-1.5 py-0.5 rounded"
+                style={{ background: 'rgba(200,134,14,0.10)', color: 'var(--gold-400)' }}
+              >
+                {row.code}
+              </span>
+            )}
             <button className="btn-icon" title="Ver detalle" onClick={() => openView(row)}>
               <Eye size={13} />
             </button>

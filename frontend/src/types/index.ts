@@ -307,6 +307,7 @@ export interface Appointment {
   end_at: string
   status: 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'no_show'
   notes?: string | null
+  code?: string | null
   created_at: string
   updated_at?: string | null
 }
