@@ -49,6 +49,7 @@ class BookingCreate(BaseModel):
     client_name: str
     client_lastname: str
     client_email: Optional[str] = None
+    client_identification_number: Optional[str] = None
     notes: Optional[str] = None
 
     @field_validator("client_phone")

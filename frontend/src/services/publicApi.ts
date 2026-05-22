@@ -47,6 +47,7 @@ export interface BookingPayload {
   client_name: string
   client_lastname: string
   client_email?: string
+  client_identification_number?: string
   notes?: string
 }
 

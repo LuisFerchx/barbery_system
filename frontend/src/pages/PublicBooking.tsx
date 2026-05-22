@@ -12,7 +12,7 @@ import StepSuccess from '../components/booking/StepSuccess'
 
 const STEP_LABELS = ['Barbería', 'Barbero', 'Fecha', 'Datos', 'Listo']
 
-const EMPTY_CLIENT: ClientFormData = { name: '', lastname: '', phone: '', email: '', notes: '' }
+const EMPTY_CLIENT: ClientFormData = { name: '', lastname: '', dialCode: '+57', phone: '', identification_number: '', email: '', notes: '' }
 
 export default function PublicBooking() {
   const { slug } = useParams<{ slug: string }>()
@@ -61,8 +61,9 @@ export default function PublicBooking() {
         scheduled_at: selectedSlot.datetime,
         client_name: clientData.name,
         client_lastname: clientData.lastname,
-        client_phone: clientData.phone,
+        client_phone: `${clientData.dialCode}${clientData.phone}`,
         client_email: clientData.email || undefined,
+        client_identification_number: clientData.identification_number || undefined,
         notes: clientData.notes || undefined,
       })
       setBooking(data)
