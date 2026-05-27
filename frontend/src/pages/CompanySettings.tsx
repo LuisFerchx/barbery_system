@@ -3,6 +3,7 @@ import { Navigate } from 'react-router-dom'
 import { Building2, Clock, Calendar, Settings2 } from 'lucide-react'
 import { companiesApi } from '../services/api'
 import { useAuth } from '../context/AuthContext'
+import PhoneInput, { splitPhone } from '../components/ui/PhoneInput'
 import type { Company } from '../types'
 import toast from 'react-hot-toast'
 
@@ -18,6 +19,7 @@ const DAYS = [
 
 interface Form {
   name: string
+  dialCode: string
   phone: string
   address: string
   open_hour: string
@@ -27,6 +29,7 @@ interface Form {
 
 const EMPTY: Form = {
   name: '',
+  dialCode: '+57',
   phone: '',
   address: '',
   open_hour: '',
@@ -35,10 +38,12 @@ const EMPTY: Form = {
 }
 
 function fromCompany(c: Company): { form: Form; days: Set<string> } {
+  const { dialCode, phone } = splitPhone(c.phone ?? '')
   return {
     form: {
       name: c.name,
-      phone: c.phone ?? '',
+      dialCode,
+      phone,
       address: c.address ?? '',
       open_hour: c.open_hour ?? '',
       close_hour: c.close_hour ?? '',
@@ -88,7 +93,7 @@ export default function CompanySettings() {
     try {
       await companiesApi.updateMe({
         name: form.name.trim(),
-        phone: form.phone || null,
+        phone: form.phone ? (form.dialCode + form.phone) : null,
         address: form.address || null,
         open_hour: form.open_hour || null,
         close_hour: form.close_hour || null,
@@ -126,7 +131,7 @@ export default function CompanySettings() {
     finally { setUploadingLogo(false) }
   }
 
-  const f = (k: keyof Pick<Form, 'name' | 'phone' | 'address' | 'open_hour' | 'close_hour'>) => ({
+  const f = (k: keyof Pick<Form, 'name' | 'address' | 'open_hour' | 'close_hour'>) => ({
     value: form[k] as string,
     onChange: (e: React.ChangeEvent<HTMLInputElement>) =>
       setForm(prev => ({ ...prev, [k]: e.target.value })),
@@ -195,10 +200,12 @@ export default function CompanySettings() {
           <input className="input w-full" placeholder="Barbería El Corte" {...f('name')} />
         </div>
         <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="text-xs block mb-1.5" style={{ color: 'var(--text-muted)' }}>Teléfono</label>
-            <input className="input w-full" placeholder="555-0000" {...f('phone')} />
-          </div>
+          <PhoneInput
+            dialCode={form.dialCode}
+            phone={form.phone}
+            onDialCodeChange={v => setForm(prev => ({ ...prev, dialCode: v }))}
+            onPhoneChange={v => setForm(prev => ({ ...prev, phone: v }))}
+          />
           <div>
             <label className="text-xs block mb-1.5" style={{ color: 'var(--text-muted)' }}>Dirección</label>
             <input className="input w-full" placeholder="Calle Principal 123" {...f('address')} />

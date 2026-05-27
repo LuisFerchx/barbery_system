@@ -3,6 +3,7 @@ import { Plus, Trash2, Pencil } from 'lucide-react'
 import { usersApi, barbersApi, catalogApi } from '../services/api'
 import Modal from '../components/ui/Modal'
 import Table from '../components/ui/Table'
+import PhoneInput, { splitPhone } from '../components/ui/PhoneInput'
 import { fmt } from '../utils/format'
 import type { User, Barber, ServiceCatalog, ProductCatalog } from '../types'
 import toast from 'react-hot-toast'
@@ -131,7 +132,7 @@ function UsersTab() {
 }
 
 // ────────── Barbers ──────────
-const EMPTY_BARBER = { name: '', lastname: '', phone: '', commission_rate: '40' }
+const EMPTY_BARBER = { name: '', lastname: '', dialCode: '+57', phone: '', commission_rate: '40' }
 
 function BarbersTab() {
   const [barbers, setBarbers] = useState<Barber[]>([])
@@ -155,7 +156,8 @@ function BarbersTab() {
   }
   const openEdit = (b: Barber) => {
     setEditing(b)
-    setForm({ name: b.name, lastname: b.lastname, phone: b.phone || '', commission_rate: String((Number(b.commission_rate) * 100).toFixed(0)) })
+    const { dialCode, phone } = splitPhone(b.phone || '')
+    setForm({ name: b.name, lastname: b.lastname, dialCode, phone, commission_rate: String((Number(b.commission_rate) * 100).toFixed(0)) })
     setPhotoFile(null)
     setPhotoPreview(b.photo_url || null)
     setShowModal(true)
@@ -168,7 +170,7 @@ function BarbersTab() {
       const payload = {
         name: form.name.trim(),
         lastname: form.lastname.trim(),
-        phone: form.phone.trim() || null,
+        phone: form.phone.trim() ? (form.dialCode + form.phone.trim()) : null,
         commission_rate: (parseFloat(form.commission_rate) || 40) / 100,
       }
       if (editing) {
@@ -275,10 +277,12 @@ function BarbersTab() {
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs block mb-1" style={{ color: 'var(--text-muted)' }}>Teléfono</label>
-              <input className="input w-full" {...f('phone')} />
-            </div>
+            <PhoneInput
+              dialCode={form.dialCode}
+              phone={form.phone}
+              onDialCodeChange={v => setForm(prev => ({ ...prev, dialCode: v }))}
+              onPhoneChange={v => setForm(prev => ({ ...prev, phone: v }))}
+            />
             <div>
               <label className="text-xs block mb-1" style={{ color: 'var(--text-muted)' }}>Comisión (%)</label>
               <div className="flex items-center gap-1">

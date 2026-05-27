@@ -3,10 +3,11 @@ import { Plus, Pencil, Building2, CheckCircle, XCircle, UserPlus } from 'lucide-
 import { companiesApi } from '../services/api'
 import Modal from '../components/ui/Modal'
 import Table from '../components/ui/Table'
+import PhoneInput, { splitPhone } from '../components/ui/PhoneInput'
 import type { Company } from '../types'
 import toast from 'react-hot-toast'
 
-const EMPTY_FORM = { name: '', slug: '', phone: '', address: '', is_active: true, commission_by_service: false }
+const EMPTY_FORM = { name: '', slug: '', dialCode: '+57', phone: '', address: '', is_active: true, commission_by_service: false }
 const EMPTY_ADMIN = { username: '', password: '', full_name: '', email: '' }
 
 function slugify(text: string) {
@@ -43,7 +44,8 @@ export default function Companies() {
 
   const openEdit = (c: Company) => {
     setEditing(c)
-    setForm({ name: c.name, slug: c.slug, phone: c.phone || '', address: c.address || '', is_active: c.is_active, commission_by_service: c.commission_by_service })
+    const { dialCode, phone } = splitPhone(c.phone || '')
+    setForm({ name: c.name, slug: c.slug, dialCode, phone, address: c.address || '', is_active: c.is_active, commission_by_service: c.commission_by_service })
     setShowModal(true)
   }
 
@@ -56,13 +58,20 @@ export default function Companies() {
     setSaving(true)
     try {
       if (editing) {
-        await companiesApi.update(editing.id, form)
+        await companiesApi.update(editing.id, {
+          name: form.name,
+          slug: form.slug,
+          phone: form.phone ? (form.dialCode + form.phone) : null,
+          address: form.address || null,
+          is_active: form.is_active,
+          commission_by_service: form.commission_by_service,
+        })
         toast.success('Empresa actualizada')
       } else {
         await companiesApi.setup({
           name: form.name,
           slug: form.slug,
-          phone: form.phone || undefined,
+          phone: form.phone ? (form.dialCode + form.phone) : undefined,
           address: form.address || undefined,
           commission_by_service: form.commission_by_service,
           admin: createAdmin
@@ -178,10 +187,12 @@ export default function Companies() {
             <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>Identificador único, auto-generado del nombre</p>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs block mb-1.5" style={{ color: 'var(--text-muted)' }}>Teléfono</label>
-              <input className="input w-full" {...f('phone')} placeholder="555-0000" />
-            </div>
+            <PhoneInput
+              dialCode={form.dialCode}
+              phone={form.phone}
+              onDialCodeChange={v => setForm(prev => ({ ...prev, dialCode: v }))}
+              onPhoneChange={v => setForm(prev => ({ ...prev, phone: v }))}
+            />
             <div>
               <label className="text-xs block mb-1.5" style={{ color: 'var(--text-muted)' }}>Dirección</label>
               <input className="input w-full" {...f('address')} placeholder="Calle Principal 123" />
