@@ -2,6 +2,9 @@ import axios from 'axios'
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || '/barberia/api/v1'
 
+export const imageProxyUrl = (path: string | null | undefined): string | null =>
+  path ? `${BASE_URL}/public/image/${path}` : null
+
 export const api = axios.create({
   baseURL: BASE_URL,
   headers: { 'Content-Type': 'application/json' },
@@ -62,6 +65,8 @@ export const barbersApi = {
   get: (id: number) => api.get(`/barbers/${id}`),
   create: (data: unknown) => api.post('/barbers/', data),
   update: (id: number, data: unknown) => api.put(`/barbers/${id}`, data),
+  uploadPhoto: (id: number, form: FormData) =>
+    api.post(`/barbers/${id}/photo`, form, { headers: { 'Content-Type': 'multipart/form-data' } }),
 }
 
 export const clientsApi = {
@@ -139,6 +144,8 @@ export const companiesApi = {
   createUser: (companyId: number, data: unknown) => api.post(`/companies/${companyId}/users/`, data),
   getMe: () => api.get('/companies/me'),
   updateMe: (data: unknown) => api.put('/companies/me', data),
+  uploadLogo: (form: FormData) =>
+    api.post('/companies/me/logo', form, { headers: { 'Content-Type': 'multipart/form-data' } }),
 }
 
 export const cashRegisterApi = {

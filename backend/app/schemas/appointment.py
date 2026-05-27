@@ -34,6 +34,7 @@ class AppointmentOut(BaseModel):
     end_at: datetime
     status: str
     notes: Optional[str] = None
+    code: Optional[str] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
 

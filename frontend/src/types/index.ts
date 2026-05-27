@@ -9,6 +9,7 @@ export interface Company {
   open_hour?: string | null
   close_hour?: string | null
   operating_days?: string | null
+  logo_url?: string | null
   created_at: string
 }
 
@@ -21,6 +22,7 @@ export interface User {
   is_active: boolean
   company_id?: number
   company_name?: string
+  company_slug?: string
   commission_by_service?: boolean
   created_at: string
 }
@@ -30,6 +32,7 @@ export interface Barber {
   name: string
   lastname: string
   phone?: string
+  photo_url?: string | null
   commission_rate: number
   is_active: boolean
   created_at: string
@@ -305,6 +308,7 @@ export interface Appointment {
   end_at: string
   status: 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'no_show'
   notes?: string | null
+  code?: string | null
   created_at: string
   updated_at?: string | null
 }

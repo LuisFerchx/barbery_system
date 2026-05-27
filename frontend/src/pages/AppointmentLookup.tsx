@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
+import QRCode from 'react-qr-code'
 import { bookingApi } from '../services/publicApi'
 import type { AppointmentPublic } from '../services/publicApi'
 
@@ -115,6 +116,20 @@ export default function AppointmentLookup() {
               {appt.client_name && <Row label="Cliente" value={appt.client_name} />}
               {appt.notes && <Row label="Notas" value={appt.notes} />}
             </div>
+
+            {code && (
+              <div
+                className="flex flex-col items-center gap-3 pt-3"
+                style={{ borderTop: '1px solid var(--surface-border)' }}
+              >
+                <div className="p-3 rounded-xl bg-white">
+                  <QRCode value={`${window.location.origin}/barberia/mi-cita/${code}`} size={140} />
+                </div>
+                <p className="text-xs text-center" style={{ color: 'var(--text-muted)' }}>
+                  Guarda o comparte el QR de tu cita
+                </p>
+              </div>
+            )}
           </div>
         )}
 

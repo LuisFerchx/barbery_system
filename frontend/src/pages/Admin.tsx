@@ -3,6 +3,7 @@ import { Plus, Trash2, Pencil } from 'lucide-react'
 import { usersApi, barbersApi, catalogApi } from '../services/api'
 import Modal from '../components/ui/Modal'
 import Table from '../components/ui/Table'
+import PhoneInput, { splitPhone } from '../components/ui/PhoneInput'
 import { fmt } from '../utils/format'
 import type { User, Barber, ServiceCatalog, ProductCatalog } from '../types'
 import toast from 'react-hot-toast'
@@ -131,7 +132,7 @@ function UsersTab() {
 }
 
 // ────────── Barbers ──────────
-const EMPTY_BARBER = { name: '', lastname: '', phone: '', commission_rate: '40' }
+const EMPTY_BARBER = { name: '', lastname: '', dialCode: '+57', phone: '', commission_rate: '40' }
 
 function BarbersTab() {
   const [barbers, setBarbers] = useState<Barber[]>([])
@@ -139,14 +140,26 @@ function BarbersTab() {
   const [editing, setEditing] = useState<Barber | null>(null)
   const [form, setForm] = useState(EMPTY_BARBER)
   const [saving, setSaving] = useState(false)
+  const [photoFile, setPhotoFile] = useState<File | null>(null)
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null)
+  const [uploadingPhoto, setUploadingPhoto] = useState(false)
 
   const load = useCallback(() => { barbersApi.list().then(r => setBarbers(r.data)) }, [])
   useEffect(() => { load() }, [load])
 
-  const openCreate = () => { setEditing(null); setForm(EMPTY_BARBER); setShowModal(true) }
+  const openCreate = () => {
+    setEditing(null)
+    setForm(EMPTY_BARBER)
+    setPhotoFile(null)
+    setPhotoPreview(null)
+    setShowModal(true)
+  }
   const openEdit = (b: Barber) => {
     setEditing(b)
-    setForm({ name: b.name, lastname: b.lastname, phone: b.phone || '', commission_rate: String((Number(b.commission_rate) * 100).toFixed(0)) })
+    const { dialCode, phone } = splitPhone(b.phone || '')
+    setForm({ name: b.name, lastname: b.lastname, dialCode, phone, commission_rate: String((Number(b.commission_rate) * 100).toFixed(0)) })
+    setPhotoFile(null)
+    setPhotoPreview(b.photo_url || null)
     setShowModal(true)
   }
 
@@ -157,11 +170,21 @@ function BarbersTab() {
       const payload = {
         name: form.name.trim(),
         lastname: form.lastname.trim(),
-        phone: form.phone.trim() || null,
+        phone: form.phone.trim() ? (form.dialCode + form.phone.trim()) : null,
         commission_rate: (parseFloat(form.commission_rate) || 40) / 100,
       }
-      if (editing) { await barbersApi.update(editing.id, payload); toast.success('Barbero actualizado') }
-      else { await barbersApi.create(payload); toast.success('Barbero creado') }
+      if (editing) {
+        await barbersApi.update(editing.id, payload)
+        toast.success('Barbero actualizado')
+      } else {
+        const res = await barbersApi.create(payload)
+        if (photoFile) {
+          const fd = new FormData()
+          fd.append('file', photoFile)
+          await barbersApi.uploadPhoto((res.data as Barber).id, fd)
+        }
+        toast.success('Barbero creado')
+      }
       setShowModal(false); load()
     } catch { toast.error('Error al guardar') }
     finally { setSaving(false) }
@@ -172,12 +195,45 @@ function BarbersTab() {
     catch { toast.error('Error') }
   }
 
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setPhotoFile(file)
+    setPhotoPreview(URL.createObjectURL(file))
+  }
+
+  const handleUploadPhoto = async () => {
+    if (!editing || !photoFile) return
+    setUploadingPhoto(true)
+    try {
+      const form = new FormData()
+      form.append('file', photoFile)
+      await barbersApi.uploadPhoto(editing.id, form)
+      toast.success('Foto actualizada')
+      setPhotoFile(null)
+      load()
+    } catch { toast.error('Error al subir foto') }
+    finally { setUploadingPhoto(false) }
+  }
+
   const f = (k: keyof typeof form) => ({
     value: form[k],
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => setForm(prev => ({ ...prev, [k]: e.target.value })),
   })
 
   const columns = [
+    {
+      key: 'photo_url',
+      label: '',
+      render: (_: string | null, row: Barber) => row.photo_url ? (
+        <img src={row.photo_url!} alt={row.name} className="w-8 h-8 rounded-full object-cover" />
+      ) : (
+        <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold"
+          style={{ background: 'var(--surface-3)', color: 'var(--text-muted)' }}>
+          {row.name.charAt(0)}{row.lastname.charAt(0)}
+        </div>
+      ),
+    },
     { key: 'name', label: 'Nombre', render: (_: string, row: Barber) => `${row.name} ${row.lastname}` },
     { key: 'phone', label: 'Teléfono', render: (v: string | null) => v || '—' },
     { key: 'commission_rate', label: 'Comisión', render: (v: number) => `${(Number(v) * 100).toFixed(0)}%` },
@@ -221,10 +277,12 @@ function BarbersTab() {
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs block mb-1" style={{ color: 'var(--text-muted)' }}>Teléfono</label>
-              <input className="input w-full" {...f('phone')} />
-            </div>
+            <PhoneInput
+              dialCode={form.dialCode}
+              phone={form.phone}
+              onDialCodeChange={v => setForm(prev => ({ ...prev, dialCode: v }))}
+              onPhoneChange={v => setForm(prev => ({ ...prev, phone: v }))}
+            />
             <div>
               <label className="text-xs block mb-1" style={{ color: 'var(--text-muted)' }}>Comisión (%)</label>
               <div className="flex items-center gap-1">
@@ -232,6 +290,35 @@ function BarbersTab() {
                 <span style={{ color: 'var(--text-muted)' }}>%</span>
               </div>
             </div>
+          </div>
+          <div className="pt-1">
+            <label className="text-xs block mb-2" style={{ color: 'var(--text-muted)' }}>Foto de perfil</label>
+            <div className="flex items-center gap-3">
+              {photoPreview ? (
+                <img src={photoPreview} alt="preview" className="w-12 h-12 rounded-full object-cover" />
+              ) : (
+                <div className="w-12 h-12 rounded-full flex items-center justify-center text-sm font-bold"
+                  style={{ background: 'var(--surface-3)', color: 'var(--text-muted)' }}>
+                  {form.name.charAt(0)}{form.lastname.charAt(0)}
+                </div>
+              )}
+              <div className="flex-1 flex gap-2">
+                <label className="btn-secondary text-xs cursor-pointer flex-1 text-center py-2">
+                  Elegir foto
+                  <input type="file" accept="image/*" className="hidden" onChange={handlePhotoChange} />
+                </label>
+                {editing && photoFile && (
+                  <button onClick={handleUploadPhoto} disabled={uploadingPhoto} className="btn-primary text-xs px-3">
+                    {uploadingPhoto ? '...' : 'Subir'}
+                  </button>
+                )}
+              </div>
+            </div>
+            {!editing && photoFile && (
+              <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
+                La foto se subirá al crear el barbero.
+              </p>
+            )}
           </div>
           <div className="flex gap-3 pt-2">
             <button onClick={() => setShowModal(false)} className="btn-secondary flex-1">Cancelar</button>

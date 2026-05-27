@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException
+import time
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from typing import List
@@ -11,13 +12,17 @@ from ....models.user import User
 from ....schemas.company import CompanyCreate, CompanyUpdate, CompanyOut, CompanySetupCreate
 from ....schemas.user import UserCreate, UserOut
 from ....security import require_superadmin, require_admin, hash_password
+from ....utils.supabase import get_supabase, get_bucket, attach_signed_url
 
 router = APIRouter()
 
 
 @router.get("/", response_model=List[CompanyOut])
 def list_companies(db: Session = Depends(get_db), _=Depends(require_superadmin)):
-    return crud.get_companies(db)
+    companies = crud.get_companies(db)
+    for c in companies:
+        attach_signed_url(c, "logo_url")
+    return companies
 
 
 @router.post("/", response_model=CompanyOut, status_code=201)
@@ -34,6 +39,7 @@ def get_my_company(db: Session = Depends(get_db), current_user=Depends(require_a
     obj = crud.get_company(db, current_user.company_id)
     if not obj:
         raise HTTPException(404, "Empresa no encontrada")
+    attach_signed_url(obj, "logo_url")
     return obj
 
 
@@ -56,6 +62,7 @@ def get_company(company_id: int, db: Session = Depends(get_db), _=Depends(requir
     obj = crud.get_company(db, company_id)
     if not obj:
         raise HTTPException(404, "Empresa no encontrada")
+    attach_signed_url(obj, "logo_url")
     return obj
 
 
@@ -114,6 +121,35 @@ def setup_company(
     except IntegrityError:
         db.rollback()
         raise HTTPException(400, "Error de integridad: slug o email ya en uso")
+
+
+@router.post("/me/logo", response_model=CompanyOut)
+async def upload_company_logo(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user=Depends(require_admin),
+):
+    if not current_user.company_id:
+        raise HTTPException(400, "Usuario sin empresa asignada")
+    company = crud.get_company(db, current_user.company_id)
+    if not company:
+        raise HTTPException(404, "Empresa no encontrada")
+
+    ext = file.filename.rsplit(".", 1)[-1].lower() if file.filename and "." in file.filename else "jpg"
+    path = f"companies/{company.id}/logo_{int(time.time())}.{ext}"
+
+    supabase = get_supabase()
+    supabase.storage.from_(get_bucket()).upload(
+        path=path,
+        file=await file.read(),
+        file_options={"content-type": file.content_type or "image/jpeg", "upsert": "true"},
+    )
+
+    company.logo_url = path
+    db.commit()
+    db.refresh(company)
+    attach_signed_url(company, "logo_url")
+    return company
 
 
 @router.post("/{company_id}/users/", response_model=UserOut, status_code=201)

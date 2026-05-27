@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Clock, User, Scissors, Calendar, RefreshCw, XCircle, CheckCircle, AlertCircle, CalendarPlus } from 'lucide-react'
+import { Clock, User, Scissors, Calendar, RefreshCw, XCircle, CheckCircle, AlertCircle, CalendarPlus, Share2, Copy, Check, X } from 'lucide-react'
+import QRCode from 'react-qr-code'
 import toast from 'react-hot-toast'
 import Modal from '../ui/Modal'
 import { appointmentsApi, barbersApi, clientsApi, catalogApi } from '../../services/api'
@@ -82,6 +83,7 @@ export default function CitaModal({ open, onClose, mode, appointment, defaultDat
   const [time, setTime] = useState(defaultTime || '09:00')
   const [notes, setNotes] = useState('')
   const [loading, setLoading] = useState(false)
+  const [showShare, setShowShare] = useState(false)
 
   const selectedService = services.find(s => String(s.id) === serviceId)
   const duration = selectedService?.duration ?? 30
@@ -220,9 +222,19 @@ export default function CitaModal({ open, onClose, mode, appointment, defaultDat
             >
               {STATUS_LABELS[appointment.status]}
             </span>
-            <span className="text-xs font-mono" style={{ color: 'var(--text-muted)' }}>
-              #{appointment.id}
-            </span>
+            <div className="flex items-center gap-2">
+              {appointment.code && (
+                <span
+                  className="text-xs font-mono font-bold tracking-widest px-2.5 py-1 rounded-lg"
+                  style={{ background: 'rgba(200,134,14,0.10)', color: 'var(--gold-400)', border: '1px solid rgba(200,134,14,0.25)' }}
+                >
+                  {appointment.code}
+                </span>
+              )}
+              <span className="text-xs font-mono" style={{ color: 'var(--text-muted)' }}>
+                #{appointment.id}
+              </span>
+            </div>
           </div>
 
           <div className="grid gap-3">
@@ -264,6 +276,20 @@ export default function CitaModal({ open, onClose, mode, appointment, defaultDat
             >
               <CalendarPlus size={14} /> Agregar a Google Calendar
             </a>
+            {appointment.code && (
+              <div className="relative">
+                <button
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-opacity hover:opacity-80"
+                  style={{ background: 'rgba(200,134,14,0.12)', color: 'var(--gold-400)', border: '1px solid rgba(200,134,14,0.25)' }}
+                  onClick={() => setShowShare(v => !v)}
+                >
+                  <Share2 size={14} /> Compartir
+                </button>
+                {showShare && (
+                  <SharePopover code={appointment.code} onClose={() => setShowShare(false)} />
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -479,5 +505,83 @@ function ActionBtn({ icon, label, color, onClick, disabled }: {
     >
       {icon} {label}
     </button>
+  )
+}
+
+function SharePopover({ code, onClose }: { code: string; onClose: () => void }) {
+  const [copied, setCopied] = useState(false)
+  const url = `${window.location.origin}/barberia/mi-cita/${code}`
+
+  function copyUrl() {
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    })
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-[200] flex items-center justify-center p-4"
+      style={{ background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(4px)' }}
+      onClick={onClose}
+    >
+      <div
+        className="relative flex flex-col items-center gap-5 rounded-2xl p-6 w-full"
+        style={{
+          maxWidth: 320,
+          background: 'var(--surface-1)',
+          border: '1px solid var(--surface-border)',
+          boxShadow: '0 24px 64px rgba(0,0,0,0.5)',
+        }}
+        onClick={e => e.stopPropagation()}
+      >
+        <button
+          onClick={onClose}
+          className="absolute top-3 right-3 flex items-center justify-center w-7 h-7 rounded-lg cursor-pointer transition-opacity hover:opacity-70"
+          style={{ background: 'var(--surface-2)', color: 'var(--text-muted)' }}
+          aria-label="Cerrar"
+        >
+          <X size={14} />
+        </button>
+
+        <div>
+          <p className="text-sm font-semibold text-center mb-0.5" style={{ color: 'var(--text-primary)' }}>
+            Compartir cita
+          </p>
+          <p className="text-xs text-center" style={{ color: 'var(--text-muted)' }}>
+            Escanea el QR o copia el enlace
+          </p>
+        </div>
+
+        <div className="p-4 rounded-xl bg-white shadow-inner">
+          <QRCode value={url} size={180} />
+        </div>
+
+        <div
+          className="w-full rounded-lg px-3 py-2 text-center"
+          style={{ background: 'var(--surface-2)', border: '1px solid var(--surface-border)' }}
+        >
+          <p className="text-xs font-mono break-all" style={{ color: 'var(--text-muted)' }}>
+            {url}
+          </p>
+        </div>
+
+        <button
+          onClick={copyUrl}
+          className="flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-xl text-sm font-semibold cursor-pointer transition-opacity hover:opacity-85"
+          style={{
+            background: copied ? 'rgba(74,222,128,0.15)' : 'rgba(200,134,14,0.15)',
+            color: copied ? '#4ade80' : 'var(--gold-400)',
+            border: `1px solid ${copied ? 'rgba(74,222,128,0.3)' : 'rgba(200,134,14,0.3)'}`,
+            transition: 'background 0.2s, color 0.2s, border-color 0.2s',
+          }}
+        >
+          {copied
+            ? <><Check size={15} /> Copiado!</>
+            : <><Copy size={15} /> Copiar enlace</>
+          }
+        </button>
+      </div>
+    </div>
   )
 }

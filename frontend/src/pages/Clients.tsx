@@ -3,6 +3,7 @@ import { Plus, Eye, Trash2, Pencil, UserCheck, UserX } from 'lucide-react'
 import { clientsApi, salesApi } from '../services/api'
 import Table from '../components/ui/Table'
 import Modal from '../components/ui/Modal'
+import PhoneInput, { splitPhone } from '../components/ui/PhoneInput'
 import { fmt } from '../utils/format'
 import type { Client, Sale } from '../types'
 import toast from 'react-hot-toast'
@@ -10,13 +11,14 @@ import toast from 'react-hot-toast'
 interface ClientFormData {
   name: string
   lastname: string
+  dialCode: string
   phone: string
   identification_number: string
   email: string
   notes: string
 }
 
-const EMPTY_FORM: ClientFormData = { name: '', lastname: '', phone: '', identification_number: '', email: '', notes: '' }
+const EMPTY_FORM: ClientFormData = { name: '', lastname: '', dialCode: '+57', phone: '', identification_number: '', email: '', notes: '' }
 
 export default function Clients() {
   const [clients, setClients] = useState<Client[]>([])
@@ -48,7 +50,8 @@ export default function Clients() {
 
   const openEdit = (c: Client) => {
     setEditing(c)
-    setForm({ name: c.name, lastname: c.lastname, phone: c.phone || '', identification_number: c.identification_number || '', email: c.email || '', notes: c.notes || '' })
+    const { dialCode, phone } = splitPhone(c.phone || '')
+    setForm({ name: c.name, lastname: c.lastname, dialCode, phone, identification_number: c.identification_number || '', email: c.email || '', notes: c.notes || '' })
     setShowModal(true)
   }
 
@@ -71,7 +74,7 @@ export default function Clients() {
       const payload = {
         name: form.name.trim(),
         lastname: form.lastname.trim(),
-        phone: form.phone.trim() || null,
+        phone: form.phone.trim() ? (form.dialCode + form.phone.trim()) : null,
         identification_number: form.identification_number.trim() || null,
         email: form.email.trim() || null,
         notes: form.notes.trim() || null,
@@ -225,10 +228,12 @@ export default function Clients() {
               <input className="input w-full" placeholder="García" {...f('lastname')} />
             </div>
           </div>
-          <div>
-            <label className="text-xs block mb-1" style={{ color: 'var(--text-muted)' }}>Teléfono</label>
-            <input className="input w-full" placeholder="+52 55 1234 5678" {...f('phone')} />
-          </div>
+          <PhoneInput
+            dialCode={form.dialCode}
+            phone={form.phone}
+            onDialCodeChange={v => setForm(prev => ({ ...prev, dialCode: v }))}
+            onPhoneChange={v => setForm(prev => ({ ...prev, phone: v }))}
+          />
           <div>
             <label className="text-xs block mb-1" style={{ color: 'var(--text-muted)' }}># Identificación</label>
             <input className="input w-full" placeholder="1234567890" {...f('identification_number')} />

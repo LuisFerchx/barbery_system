@@ -167,6 +167,7 @@ def book_appointment_atomic(
             lastname=data.client_lastname,
             phone=data.client_phone,
             email=data.client_email,
+            identification_number=data.client_identification_number,
         )
         db.add(client)
         db.flush()

@@ -18,12 +18,20 @@ function dayLabel(operating_days: string | null | undefined): string {
 export default function StepShopInfo({ shop, onNext }: Props) {
   return (
     <div className="flex flex-col items-center text-center gap-6">
-      <div
-        className="w-20 h-20 rounded-2xl flex items-center justify-center text-3xl font-bold"
-        style={{ background: 'var(--gold-400)', color: '#000' }}
-      >
-        {shop.name.charAt(0).toUpperCase()}
-      </div>
+      {shop.logo_url ? (
+        <img
+          src={shop.logo_url!}
+          alt={shop.name}
+          className="w-20 h-20 rounded-2xl object-cover"
+        />
+      ) : (
+        <div
+          className="w-20 h-20 rounded-2xl flex items-center justify-center text-3xl font-bold"
+          style={{ background: 'var(--gold-400)', color: '#000' }}
+        >
+          {shop.name.charAt(0).toUpperCase()}
+        </div>
+      )}
 
       <div>
         <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>

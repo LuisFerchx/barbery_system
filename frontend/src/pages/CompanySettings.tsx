@@ -3,6 +3,7 @@ import { Navigate } from 'react-router-dom'
 import { Building2, Clock, Calendar, Settings2 } from 'lucide-react'
 import { companiesApi } from '../services/api'
 import { useAuth } from '../context/AuthContext'
+import PhoneInput, { splitPhone } from '../components/ui/PhoneInput'
 import type { Company } from '../types'
 import toast from 'react-hot-toast'
 
@@ -18,6 +19,7 @@ const DAYS = [
 
 interface Form {
   name: string
+  dialCode: string
   phone: string
   address: string
   open_hour: string
@@ -27,6 +29,7 @@ interface Form {
 
 const EMPTY: Form = {
   name: '',
+  dialCode: '+57',
   phone: '',
   address: '',
   open_hour: '',
@@ -35,10 +38,12 @@ const EMPTY: Form = {
 }
 
 function fromCompany(c: Company): { form: Form; days: Set<string> } {
+  const { dialCode, phone } = splitPhone(c.phone ?? '')
   return {
     form: {
       name: c.name,
-      phone: c.phone ?? '',
+      dialCode,
+      phone,
       address: c.address ?? '',
       open_hour: c.open_hour ?? '',
       close_hour: c.close_hour ?? '',
@@ -54,15 +59,22 @@ export default function CompanySettings() {
   const [selectedDays, setSelectedDays] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [logoUrl, setLogoUrl] = useState<string | null>(null)
+  const [logoFile, setLogoFile] = useState<File | null>(null)
+  const [logoPreview, setLogoPreview] = useState<string | null>(null)
+  const [uploadingLogo, setUploadingLogo] = useState(false)
 
   if (user?.role !== 'admin') return <Navigate to="/" replace />
 
   useEffect(() => {
     companiesApi.getMe()
       .then(r => {
-        const { form: f, days } = fromCompany(r.data as Company)
+        const company = r.data as Company
+        const { form: f, days } = fromCompany(company)
         setForm(f)
         setSelectedDays(days)
+        setLogoUrl(company.logo_url ?? null)
+        setLogoPreview(company.logo_url ?? null)
       })
       .catch(() => toast.error('Error al cargar datos de la empresa'))
       .finally(() => setLoading(false))
@@ -81,7 +93,7 @@ export default function CompanySettings() {
     try {
       await companiesApi.updateMe({
         name: form.name.trim(),
-        phone: form.phone || null,
+        phone: form.phone ? (form.dialCode + form.phone) : null,
         address: form.address || null,
         open_hour: form.open_hour || null,
         close_hour: form.close_hour || null,
@@ -96,7 +108,30 @@ export default function CompanySettings() {
     }
   }
 
-  const f = (k: keyof Pick<Form, 'name' | 'phone' | 'address' | 'open_hour' | 'close_hour'>) => ({
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setLogoFile(file)
+    setLogoPreview(URL.createObjectURL(file))
+  }
+
+  const handleUploadLogo = async () => {
+    if (!logoFile) return
+    setUploadingLogo(true)
+    try {
+      const fd = new FormData()
+      fd.append('file', logoFile)
+      const r = await companiesApi.uploadLogo(fd)
+      const newUrl = (r.data as Company).logo_url ?? null
+      setLogoUrl(newUrl)
+      setLogoPreview(newUrl)
+      setLogoFile(null)
+      toast.success('Logo actualizado')
+    } catch { toast.error('Error al subir logo') }
+    finally { setUploadingLogo(false) }
+  }
+
+  const f = (k: keyof Pick<Form, 'name' | 'address' | 'open_hour' | 'close_hour'>) => ({
     value: form[k] as string,
     onChange: (e: React.ChangeEvent<HTMLInputElement>) =>
       setForm(prev => ({ ...prev, [k]: e.target.value })),
@@ -124,6 +159,37 @@ export default function CompanySettings() {
         </div>
       </div>
 
+      {/* Logo */}
+      <div className="card space-y-4">
+        <p className="text-xs font-semibold flex items-center gap-2" style={{ color: 'var(--text-muted)' }}>
+          <Building2 size={13} />LOGO DE LA EMPRESA
+        </p>
+        <div className="flex items-center gap-4">
+          {logoPreview ? (
+            <img src={logoPreview} alt="logo" className="w-16 h-16 rounded-xl object-cover" />
+          ) : (
+            <div className="w-16 h-16 rounded-xl flex items-center justify-center text-2xl font-bold"
+              style={{ background: 'rgba(200,134,14,0.15)', color: 'var(--gold-400)' }}>
+              {form.name.charAt(0) || '?'}
+            </div>
+          )}
+          <div className="flex gap-2">
+            <label className="btn-secondary text-xs cursor-pointer px-4 py-2">
+              Elegir imagen
+              <input type="file" accept="image/*" className="hidden" onChange={handleLogoChange} />
+            </label>
+            {logoFile && (
+              <button onClick={handleUploadLogo} disabled={uploadingLogo} className="btn-primary text-xs px-4">
+                {uploadingLogo ? 'Subiendo...' : 'Subir logo'}
+              </button>
+            )}
+          </div>
+        </div>
+        {logoUrl && !logoFile && (
+          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Logo actual guardado en Supabase.</p>
+        )}
+      </div>
+
       {/* Información general */}
       <div className="card space-y-4">
         <p className="text-xs font-semibold flex items-center gap-2" style={{ color: 'var(--text-muted)' }}>
@@ -134,10 +200,12 @@ export default function CompanySettings() {
           <input className="input w-full" placeholder="Barbería El Corte" {...f('name')} />
         </div>
         <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="text-xs block mb-1.5" style={{ color: 'var(--text-muted)' }}>Teléfono</label>
-            <input className="input w-full" placeholder="555-0000" {...f('phone')} />
-          </div>
+          <PhoneInput
+            dialCode={form.dialCode}
+            phone={form.phone}
+            onDialCodeChange={v => setForm(prev => ({ ...prev, dialCode: v }))}
+            onPhoneChange={v => setForm(prev => ({ ...prev, phone: v }))}
+          />
           <div>
             <label className="text-xs block mb-1.5" style={{ color: 'var(--text-muted)' }}>Dirección</label>
             <input className="input w-full" placeholder="Calle Principal 123" {...f('address')} />

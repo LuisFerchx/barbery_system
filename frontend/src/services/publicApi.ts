@@ -15,6 +15,7 @@ export interface ShopInfo {
   open_hour?: string | null
   close_hour?: string | null
   operating_days?: string | null
+  logo_url?: string | null
   is_active: boolean
 }
 
@@ -22,6 +23,7 @@ export interface BarberPublic {
   id: number
   name: string
   lastname: string
+  photo_url?: string | null
 }
 
 export interface ServicePublic {
@@ -45,6 +47,7 @@ export interface BookingPayload {
   client_name: string
   client_lastname: string
   client_email?: string
+  client_identification_number?: string
   notes?: string
 }
 

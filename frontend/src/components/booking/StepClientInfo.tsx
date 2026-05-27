@@ -1,9 +1,12 @@
 import { useState } from 'react'
+import PhoneInput from '../ui/PhoneInput'
 
 export interface ClientFormData {
   name: string
   lastname: string
+  dialCode: string
   phone: string
+  identification_number: string
   email: string
   notes: string
 }
@@ -22,7 +25,7 @@ export default function StepClientInfo({ value, onChange, onNext, onBack }: Prop
     const e: typeof errors = {}
     if (!value.name.trim()) e.name = 'Requerido'
     if (!value.lastname.trim()) e.lastname = 'Requerido'
-    if (!value.phone.trim() || value.phone.trim().length < 7) e.phone = 'Mínimo 7 caracteres'
+    if (!value.phone.trim() || value.phone.trim().length < 7) e.phone = 'Mínimo 7 dígitos'
     setErrors(e)
     return Object.keys(e).length === 0
   }
@@ -65,13 +68,23 @@ export default function StepClientInfo({ value, onChange, onNext, onBack }: Prop
           </Field>
         </div>
 
-        <Field label="Teléfono *" error={errors.phone}>
+        <PhoneInput
+          dialCode={value.dialCode}
+          phone={value.phone}
+          onDialCodeChange={v => set('dialCode', v)}
+          onPhoneChange={v => set('phone', v)}
+          error={errors.phone}
+          label="Teléfono"
+          required
+        />
+
+        <Field label="Número de identificación (opcional)">
           <input
-            type="tel"
-            placeholder="3001234567"
-            value={value.phone}
-            onChange={(e) => set('phone', e.target.value)}
-            style={inputStyle(!!errors.phone)}
+            type="text"
+            placeholder="Cédula, pasaporte, etc."
+            value={value.identification_number}
+            onChange={(e) => set('identification_number', e.target.value)}
+            style={inputStyle(false)}
           />
         </Field>
 
@@ -120,7 +133,7 @@ function inputStyle(hasError: boolean): React.CSSProperties {
   return {
     width: '100%',
     padding: '10px 14px',
-    borderRadius: '10px',
+    borderRadius: 10,
     background: 'var(--surface-2)',
     border: `1px solid ${hasError ? '#ef4444' : 'var(--surface-border)'}`,
     color: 'var(--text-primary)',

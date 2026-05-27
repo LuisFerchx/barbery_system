@@ -13,6 +13,7 @@ from ....schemas.public_booking import (
     BookingOut,
     AppointmentPublicOut,
 )
+from ....utils.supabase import attach_signed_url
 
 router = APIRouter()
 
@@ -26,13 +27,18 @@ def _get_company_or_404(slug: str, db: Session):
 
 @router.get("/{slug}", response_model=ShopPublicOut)
 def get_shop_info(slug: str, db: Session = Depends(get_db)):
-    return _get_company_or_404(slug, db)
+    company = _get_company_or_404(slug, db)
+    attach_signed_url(company, "logo_url")
+    return company
 
 
 @router.get("/{slug}/barbers", response_model=List[BarberPublicOut])
 def list_barbers(slug: str, db: Session = Depends(get_db)):
     company = _get_company_or_404(slug, db)
-    return crud.get_public_barbers(db, company.id)
+    barbers = crud.get_public_barbers(db, company.id)
+    for b in barbers:
+        attach_signed_url(b, "photo_url")
+    return barbers
 
 
 @router.get("/{slug}/services", response_model=List[ServicePublicOut])
