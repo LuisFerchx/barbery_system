@@ -16,3 +16,6 @@ postgres_data/
 .DS_Store
 .claude/
 .gemini/
+.antigravitycli/
+.opencode/
+.agent/
