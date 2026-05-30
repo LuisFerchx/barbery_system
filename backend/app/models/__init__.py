@@ -12,6 +12,7 @@ from .expense import Expense
 from .manual import OperatingManualEntry
 from .cash_register import CashRegisterClosing
 from .appointment import Appointment
+from .barber_hours import BarberHours
 
 __all__ = [
     "Company",
@@ -28,4 +29,6 @@ __all__ = [
     "OperatingManualEntry",
     "CashRegisterClosing",
     "Appointment",
+    "BarberHours",
 ]
+

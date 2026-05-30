@@ -188,6 +188,25 @@ def _check_barber_conflict(
         raise ValueError("El barbero ya tiene una cita en ese horario")
 
 
+def _check_barber_block_conflict(
+    db: Session,
+    company_id: int,
+    barber_id: int,
+    scheduled_at: datetime,
+    end_at: datetime,
+) -> None:
+    """
+    Raise if the barber has a blocked hours configuration that overlaps the proposed time.
+    """
+    from .barber_hours import get_blocked_intervals
+
+    target_date = scheduled_at.date()
+    blocked = get_blocked_intervals(db, company_id, barber_id, target_date)
+    for b_start, b_end in blocked:
+        if scheduled_at < b_end and end_at > b_start:
+            raise ValueError("El barbero tiene un bloqueo de horario en ese momento")
+
+
 def get_appointments(
     db: Session,
     company_id: int,
@@ -304,6 +323,7 @@ def create_appointment(db: Session, company_id: int, data: AppointmentCreate) ->
     company = db.query(Company).filter(Company.id == company_id).first()
     _validate_schedule(company, scheduled_at, end_at)
     _check_barber_conflict(db, company_id, data.barber_id, scheduled_at, end_at)
+    _check_barber_block_conflict(db, company_id, data.barber_id, scheduled_at, end_at)
 
     appt = Appointment(
         company_id=company_id,
@@ -357,6 +377,7 @@ def reschedule_appointment(
     company = db.query(Company).filter(Company.id == company_id).first()
     _validate_schedule(company, scheduled_at, end_at)
     _check_barber_conflict(db, company_id, appt.barber_id, scheduled_at, end_at, exclude_id=appointment_id)
+    _check_barber_block_conflict(db, company_id, appt.barber_id, scheduled_at, end_at)
 
     appt.scheduled_at = scheduled_at
     appt.end_at = end_at

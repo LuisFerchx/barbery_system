@@ -102,6 +102,9 @@ def get_available_slots(
     open_dt = datetime(parsed_date.year, parsed_date.month, parsed_date.day, open_h, open_m, tzinfo=timezone.utc)
     close_dt = datetime(parsed_date.year, parsed_date.month, parsed_date.day, close_h, close_m, tzinfo=timezone.utc)
 
+    from .barber_hours import get_blocked_intervals
+    blocked_intervals = get_blocked_intervals(db, company.id, barber_id, parsed_date)
+
     slots: List[SlotOut] = []
     current = open_dt
 
@@ -110,6 +113,9 @@ def get_available_slots(
         conflict = any(
             appt.scheduled_at < slot_end and appt.end_at > current
             for appt in existing
+        ) or any(
+            b_start < slot_end and b_end > current
+            for b_start, b_end in blocked_intervals
         )
         if not conflict:
             slots.append(SlotOut(
