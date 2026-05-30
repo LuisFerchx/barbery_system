@@ -19,6 +19,7 @@ interface Props {
   appointment?: Appointment | null
   defaultDate?: string
   defaultTime?: string
+  defaultBarberId?: string | number
   onSaved: () => void
   onReschedule?: (appointment: Appointment) => void
 }
@@ -55,11 +56,12 @@ const STATUS_COLORS: Record<string, string> = {
  * @param appointment - Appointment to display or reschedule (required for `view` and `reschedule` modes)
  * @param defaultDate - Optional initial date for create/reschedule forms in `YYYY-MM-DD` format
  * @param defaultTime - Optional initial time for create/reschedule forms in `HH:MM` format
+ * @param defaultBarberId - Optional initial barber ID for creation
  * @param onSaved - Callback invoked after a successful create, reschedule, status change, or cancellation
  * @param onReschedule - Optional callback invoked when the user requests to reschedule from view mode
  * @returns The modal's JSX element rendering the appointment UI for the selected mode
  */
-export default function CitaModal({ open, onClose, mode, appointment, defaultDate, defaultTime, onSaved, onReschedule }: Props) {
+export default function CitaModal({ open, onClose, mode, appointment, defaultDate, defaultTime, defaultBarberId, onSaved, onReschedule }: Props) {
   const [barbers, setBarbers] = useState<Barber[]>([])
   const [clients, setClients] = useState<Client[]>([])
   const [services, setServices] = useState<ServiceCatalog[]>([])
@@ -109,7 +111,7 @@ export default function CitaModal({ open, onClose, mode, appointment, defaultDat
 
   useEffect(() => {
     if (open && mode === 'create') {
-      setBarberId('')
+      setBarberId(defaultBarberId ? String(defaultBarberId) : '')
       setServiceId('')
       setClientId('')
       setDate(defaultDate || new Date().toISOString().slice(0, 10))
@@ -121,7 +123,7 @@ export default function CitaModal({ open, onClose, mode, appointment, defaultDat
       setDate(dt.toISOString().slice(0, 10))
       setTime(`${String(dt.getUTCHours()).padStart(2, '0')}:${String(dt.getUTCMinutes()).padStart(2, '0')}`)
     }
-  }, [open, mode, appointment, defaultDate, defaultTime])
+  }, [open, mode, appointment, defaultDate, defaultTime, defaultBarberId])
 
   useEffect(() => {
     const activeBarberId = mode === 'reschedule' ? appointment?.barber_id : Number(barberId)

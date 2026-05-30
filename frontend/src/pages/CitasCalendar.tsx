@@ -48,6 +48,7 @@ type ModalState = {
 const CLOSED: ModalState = { open: false, mode: 'create', appointment: null }
 const WEEKDAYS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
 const HOUR_HEIGHT = 64
+const DAY_HOUR_HEIGHT = 120
 const START_HOUR = 7
 const END_HOUR = 22
 const HOURS = Array.from({ length: END_HOUR - START_HOUR }, (_, i) => START_HOUR + i)
@@ -79,10 +80,10 @@ function fmtTime(iso: string) {
  * @param iso - ISO 8601 datetime string for the appointment start (interpreted in UTC)
  * @returns The top offset in pixels from the start of the visible grid; `0` if the time is before `START_HOUR`
  */
-function apptTopPx(iso: string): number {
+function apptTopPx(iso: string, hourHeight: number = HOUR_HEIGHT): number {
   const d = new Date(iso)
   const mins = d.getUTCHours() * 60 + d.getUTCMinutes() - START_HOUR * 60
-  return Math.max(0, (mins / 60) * HOUR_HEIGHT)
+  return Math.max(0, (mins / 60) * hourHeight)
 }
 
 /**
@@ -91,8 +92,103 @@ function apptTopPx(iso: string): number {
  * @param durationMinutes - Appointment duration in minutes
  * @returns The height in pixels, with a minimum of `22` px
  */
-function apptHeightPx(durationMinutes: number): number {
-  return Math.max(22, (durationMinutes / 60) * HOUR_HEIGHT)
+function apptHeightPx(durationMinutes: number, hourHeight: number = HOUR_HEIGHT): number {
+  return Math.max(22, (durationMinutes / 60) * hourHeight)
+}
+
+interface PositionedAppointment {
+  appointment: Appointment
+  left: number
+  width: number
+}
+
+/**
+ * Computes non-overlapping positions for a list of appointments on a single day.
+ * It uses a standard calendar grid layout algorithm to group overlapping
+ * appointments into clusters and assign column indices.
+ *
+ * @param dayAppts - List of appointments for a single day
+ * @returns List of positioned appointments with left and width percentages
+ */
+function computePositionedAppointments(dayAppts: Appointment[]): PositionedAppointment[] {
+  if (dayAppts.length === 0) return []
+
+  // Sort appointments by start time, and then by end time descending (longer ones first)
+  const sorted = [...dayAppts].sort((a, b) => {
+    const aStart = new Date(a.scheduled_at).getTime()
+    const bStart = new Date(b.scheduled_at).getTime()
+    if (aStart !== bStart) return aStart - bStart
+
+    const aEnd = a.end_at ? new Date(a.end_at).getTime() : aStart + a.duration_minutes * 60 * 1000
+    const bEnd = b.end_at ? new Date(b.end_at).getTime() : bStart + b.duration_minutes * 60 * 1000
+    return bEnd - aEnd
+  })
+
+  const clusters: Appointment[][] = []
+  let currentCluster: Appointment[] = []
+  let clusterMaxEnd = 0
+
+  for (const appt of sorted) {
+    const start = new Date(appt.scheduled_at).getTime()
+    const durationMs = appt.duration_minutes * 60 * 1000
+    const end = appt.end_at ? new Date(appt.end_at).getTime() : start + durationMs
+
+    if (currentCluster.length > 0 && start >= clusterMaxEnd) {
+      clusters.push(currentCluster)
+      currentCluster = []
+      clusterMaxEnd = 0
+    }
+
+    currentCluster.push(appt)
+    clusterMaxEnd = Math.max(clusterMaxEnd, end)
+  }
+  if (currentCluster.length > 0) {
+    clusters.push(currentCluster)
+  }
+
+  const result: PositionedAppointment[] = []
+
+  for (const cluster of clusters) {
+    const columns: number[] = [] // stores the end time of the last appointment in each column
+    const apptColumnIndices: Map<number, number> = new Map()
+
+    for (const appt of cluster) {
+      const start = new Date(appt.scheduled_at).getTime()
+      const durationMs = appt.duration_minutes * 60 * 1000
+      const end = appt.end_at ? new Date(appt.end_at).getTime() : start + durationMs
+
+      let colIndex = -1
+      for (let i = 0; i < columns.length; i++) {
+        if (columns[i] <= start) {
+          colIndex = i
+          break
+        }
+      }
+
+      if (colIndex === -1) {
+        columns.push(end)
+        colIndex = columns.length - 1
+      } else {
+        columns[colIndex] = end
+      }
+
+      apptColumnIndices.set(appt.id, colIndex)
+    }
+
+    const totalCols = columns.length
+    for (const appt of cluster) {
+      const colIndex = apptColumnIndices.get(appt.id) ?? 0
+      const width = 100 / totalCols
+      const left = colIndex * width
+      result.push({
+        appointment: appt,
+        left,
+        width,
+      })
+    }
+  }
+
+  return result
 }
 
 /**
@@ -100,11 +196,11 @@ function apptHeightPx(durationMinutes: number): number {
  *
  * @returns A DOM element showing a horizontal line with a small circular marker at the current UTC time relative to `START_HOUR`–`END_HOUR`, or `null` if the current time falls outside the visible grid.
  */
-function TodayLine() {
+function TodayLine({ hourHeight = HOUR_HEIGHT }: { hourHeight?: number }) {
   const now = new Date()
   const mins = now.getUTCHours() * 60 + now.getUTCMinutes() - START_HOUR * 60
-  const top = (mins / 60) * HOUR_HEIGHT
-  if (top < 0 || top > (END_HOUR - START_HOUR) * HOUR_HEIGHT) return null
+  const top = (mins / 60) * hourHeight
+  if (top < 0 || top > (END_HOUR - START_HOUR) * hourHeight) return null
   return (
     <div className="absolute w-full pointer-events-none" style={{ top, zIndex: 3 }}>
       <div
@@ -396,120 +492,122 @@ export default function CitasCalendar() {
       {view === 'week' && (
         <>
           <div
-            className="rounded-2xl overflow-hidden"
+            className="rounded-2xl overflow-x-auto"
             style={{ background: 'var(--surface-1)', border: '1px solid var(--surface-border)' }}
           >
-            {/* Day headers */}
-            <div className="grid" style={{ gridTemplateColumns: '52px repeat(7, 1fr)' }}>
-              <div style={{ borderBottom: '1px solid var(--surface-border)' }} />
-              {weekDays.map(day => (
-                <div
-                  key={isoDate(day)}
-                  className="py-2.5 text-center"
-                  style={{
-                    borderBottom: '1px solid var(--surface-border)',
-                    borderLeft:   '1px solid var(--surface-border)',
-                  }}
-                >
-                  <div className="text-xs font-medium capitalize" style={{ color: 'var(--text-muted)' }}>
-                    {format(day, 'EEE', { locale: es })}
-                  </div>
+            <div style={{ minWidth: '1200px' }}>
+              {/* Day headers */}
+              <div className="grid" style={{ gridTemplateColumns: '52px repeat(7, 1fr)' }}>
+                <div style={{ borderBottom: '1px solid var(--surface-border)' }} />
+                {weekDays.map(day => (
                   <div
-                    className="w-7 h-7 mx-auto mt-0.5 flex items-center justify-center rounded-full text-sm font-semibold cursor-pointer transition-colors"
-                    onClick={() => { setCurrentDate(day); setView('day') }}
-                    style={isToday(day)
-                      ? { background: 'var(--gold-400)', color: '#000' }
-                      : { color: 'var(--text-secondary)' }
-                    }
+                    key={isoDate(day)}
+                    className="py-2.5 text-center"
+                    style={{
+                      borderBottom: '1px solid var(--surface-border)',
+                      borderLeft:   '1px solid var(--surface-border)',
+                    }}
                   >
-                    {format(day, 'd')}
+                    <div className="text-xs font-medium capitalize" style={{ color: 'var(--text-muted)' }}>
+                      {format(day, 'EEE', { locale: es })}
+                    </div>
+                    <div
+                      className="w-7 h-7 mx-auto mt-0.5 flex items-center justify-center rounded-full text-sm font-semibold cursor-pointer transition-colors"
+                      onClick={() => { setCurrentDate(day); setView('day') }}
+                      style={isToday(day)
+                        ? { background: 'var(--gold-400)', color: '#000' }
+                        : { color: 'var(--text-secondary)' }
+                      }
+                    >
+                      {format(day, 'd')}
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
 
-            {/* Time grid */}
-            <div className="overflow-y-auto" style={{ maxHeight: '620px' }}>
-              <div className="relative" style={{ height: `${HOURS.length * HOUR_HEIGHT}px` }}>
-                <div
-                  className="absolute inset-0 grid"
-                  style={{ gridTemplateColumns: '52px repeat(7, 1fr)' }}
-                >
-                  {/* Hour labels */}
-                  <div className="relative" style={{ borderRight: '1px solid var(--surface-border)' }}>
-                    {HOURS.map(h => (
-                      <div
-                        key={h}
-                        className="absolute pr-2 text-right w-full"
-                        style={{
-                          top:      (h - START_HOUR) * HOUR_HEIGHT - 8,
-                          fontSize: '10px',
-                          color:    'var(--text-muted)',
-                        }}
-                      >
-                        {String(h).padStart(2, '0')}:00
-                      </div>
-                    ))}
-                  </div>
+              {/* Time grid */}
+              <div className="overflow-y-auto" style={{ maxHeight: '620px' }}>
+                <div className="relative" style={{ height: `${HOURS.length * HOUR_HEIGHT}px` }}>
+                  <div
+                    className="absolute inset-0 grid"
+                    style={{ gridTemplateColumns: '52px repeat(7, 1fr)' }}
+                  >
+                    {/* Hour labels */}
+                    <div className="relative" style={{ borderRight: '1px solid var(--surface-border)' }}>
+                      {HOURS.map(h => (
+                        <div
+                          key={h}
+                          className="absolute pr-2 text-right w-full"
+                          style={{
+                            top:      (h - START_HOUR) * HOUR_HEIGHT - 8,
+                            fontSize: '10px',
+                            color:    'var(--text-muted)',
+                          }}
+                        >
+                          {String(h).padStart(2, '0')}:00
+                        </div>
+                      ))}
+                    </div>
 
-                  {/* Day columns */}
-                  {weekDays.map(day => {
-                    const key      = isoDate(day)
-                    const dayAppts = byDate[key] || []
-                    return (
-                      <div
-                        key={key}
-                        className="relative cursor-pointer"
-                        style={{ borderLeft: '1px solid var(--surface-border)' }}
-                        onClick={() => setModal({ open: true, mode: 'create', appointment: null, defaultDate: key })}
-                      >
-                        {/* Hour lines */}
-                        {HOURS.map(h => (
-                          <div
-                            key={h}
-                            className="absolute w-full"
-                            style={{
-                              top:        (h - START_HOUR) * HOUR_HEIGHT,
-                              borderTop:  '1px solid var(--surface-border)',
-                              opacity:    0.4,
-                              pointerEvents: 'none',
-                            }}
-                          />
-                        ))}
+                    {/* Day columns */}
+                    {weekDays.map(day => {
+                      const key      = isoDate(day)
+                      const dayAppts = byDate[key] || []
+                      return (
+                        <div
+                          key={key}
+                          className="relative cursor-pointer"
+                          style={{ borderLeft: '1px solid var(--surface-border)' }}
+                          onClick={() => setModal({ open: true, mode: 'create', appointment: null, defaultDate: key })}
+                        >
+                          {/* Hour lines */}
+                          {HOURS.map(h => (
+                            <div
+                              key={h}
+                              className="absolute w-full"
+                              style={{
+                                top:        (h - START_HOUR) * HOUR_HEIGHT,
+                                borderTop:  '1px solid var(--surface-border)',
+                                opacity:    0.4,
+                                pointerEvents: 'none',
+                              }}
+                            />
+                          ))}
 
-                        {isToday(day) && <TodayLine />}
+                          {isToday(day) && <TodayLine />}
 
-                        {dayAppts.map(a => (
-                          <button
-                            key={a.id}
-                            onClick={e => { e.stopPropagation(); setModal({ open: true, mode: 'view', appointment: a }) }}
-                            className="absolute rounded overflow-hidden cursor-pointer transition-opacity hover:opacity-80 text-left px-1.5"
-                            style={{
-                              left:        2,
-                              right:       2,
-                              top:         apptTopPx(a.scheduled_at),
-                              height:      apptHeightPx(a.duration_minutes),
-                              background:  STATUS_BG[a.status],
-                              borderLeft:  `2px solid ${STATUS_COLORS[a.status]}`,
-                              color:       STATUS_COLORS[a.status],
-                              zIndex:      2,
-                              paddingTop:  2,
-                              paddingBottom: 2,
-                            }}
-                          >
-                            <div className="font-semibold truncate leading-tight" style={{ fontSize: '11px' }}>
-                              {fmtTime(a.scheduled_at)} {a.client_name || '—'}
-                            </div>
-                            {a.duration_minutes >= 30 && (
-                              <div className="truncate opacity-75 leading-tight" style={{ fontSize: '10px' }}>
-                                {a.service_name}
+                          {computePositionedAppointments(dayAppts).map(({ appointment: a, left, width }) => (
+                            <button
+                              key={a.id}
+                              onClick={e => { e.stopPropagation(); setModal({ open: true, mode: 'view', appointment: a }) }}
+                              className="absolute rounded overflow-hidden cursor-pointer transition-opacity hover:opacity-80 text-left px-1.5"
+                              style={{
+                                left:        `calc(${left}% + 2px)`,
+                                width:       `calc(${width}% - 4px)`,
+                                top:         apptTopPx(a.scheduled_at),
+                                height:      apptHeightPx(a.duration_minutes),
+                                background:  STATUS_BG[a.status],
+                                borderLeft:  `2px solid ${STATUS_COLORS[a.status]}`,
+                                color:       STATUS_COLORS[a.status],
+                                zIndex:      2,
+                                paddingTop:  2,
+                                paddingBottom: 2,
+                              }}
+                            >
+                              <div className="font-semibold truncate leading-tight" style={{ fontSize: '11px' }}>
+                                {fmtTime(a.scheduled_at)} {a.client_name || '—'}
                               </div>
-                            )}
-                          </button>
-                        ))}
-                      </div>
-                    )
-                  })}
+                              {a.duration_minutes >= 30 && (
+                                <div className="truncate opacity-75 leading-tight" style={{ fontSize: '10px' }}>
+                                  {a.service_name}
+                                </div>
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      )
+                    })}
+                  </div>
                 </div>
               </div>
             </div>
@@ -559,7 +657,7 @@ export default function CitasCalendar() {
 
             {/* Time grid */}
             <div className="overflow-y-auto" style={{ maxHeight: '640px' }}>
-              <div className="relative" style={{ height: `${HOURS.length * HOUR_HEIGHT}px` }}>
+              <div className="relative" style={{ height: `${HOURS.length * DAY_HOUR_HEIGHT}px` }}>
                 <div
                   className="absolute inset-0"
                   style={{ display: 'grid', gridTemplateColumns: '52px 1fr' }}
@@ -571,7 +669,7 @@ export default function CitasCalendar() {
                         key={h}
                         className="absolute pr-2 text-right w-full"
                         style={{
-                          top:      (h - START_HOUR) * HOUR_HEIGHT - 8,
+                          top:      (h - START_HOUR) * DAY_HOUR_HEIGHT - 8,
                           fontSize: '10px',
                           color:    'var(--text-muted)',
                         }}
@@ -591,7 +689,7 @@ export default function CitasCalendar() {
                         key={h}
                         className="absolute w-full"
                         style={{
-                          top:        (h - START_HOUR) * HOUR_HEIGHT,
+                          top:        (h - START_HOUR) * DAY_HOUR_HEIGHT,
                           borderTop:  '1px solid var(--surface-border)',
                           opacity:    0.4,
                           pointerEvents: 'none',
@@ -599,18 +697,18 @@ export default function CitasCalendar() {
                       />
                     ))}
 
-                    {isToday(currentDate) && <TodayLine />}
+                    {isToday(currentDate) && <TodayLine hourHeight={DAY_HOUR_HEIGHT} />}
 
-                    {(byDate[isoDate(currentDate)] || []).map(a => (
+                    {computePositionedAppointments(byDate[isoDate(currentDate)] || []).map(({ appointment: a, left, width }) => (
                       <button
                         key={a.id}
                         onClick={e => { e.stopPropagation(); setModal({ open: true, mode: 'view', appointment: a }) }}
                         className="absolute rounded-xl overflow-hidden cursor-pointer transition-opacity hover:opacity-80 text-left px-3 py-2"
                         style={{
-                          left:       8,
-                          right:      8,
-                          top:        apptTopPx(a.scheduled_at),
-                          height:     apptHeightPx(a.duration_minutes),
+                          left:       `calc(${left}% + 8px)`,
+                          width:      `calc(${width}% - 16px)`,
+                          top:        apptTopPx(a.scheduled_at, DAY_HOUR_HEIGHT),
+                          height:     apptHeightPx(a.duration_minutes, DAY_HOUR_HEIGHT),
                           background: STATUS_BG[a.status],
                           borderLeft: `3px solid ${STATUS_COLORS[a.status]}`,
                           color:      STATUS_COLORS[a.status],

@@ -20,6 +20,7 @@ import CompanySettings from './pages/CompanySettings'
 import CajaChica from './pages/CajaChica'
 import CitasList from './pages/CitasList'
 import CitasCalendar from './pages/CitasCalendar'
+import CitasCalendarDiario from './pages/CitasCalendarDiario'
 import PublicBooking from './pages/PublicBooking'
 import AppointmentLookup from './pages/AppointmentLookup'
 
@@ -79,6 +80,7 @@ function AppRoutes() {
         <Route path="caja-chica" element={<CajaChica />} />
         <Route path="citas" element={<CitasList />} />
         <Route path="citas/calendario" element={<CitasCalendar />} />
+        <Route path="citas/diario" element={<CitasCalendarDiario />} />
         <Route path="companies" element={<SuperadminRoute><Companies /></SuperadminRoute>} />
       </Route>
     </Routes>
