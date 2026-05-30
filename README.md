@@ -1,8 +1,10 @@
 <div align="center">
 
-# Sistema de Gestión Barbería Hair Craft
+  <img src="github_banner.png" alt="Hair Craft Banner" width="100%">
 
-  **Gestión integral de barberías — ventas, citas, inventario, contabilidad y más**
+# Hair Craft Barbershop Management System
+
+  **Comprehensive barbershop management — sales, appointments, inventory, accounting, and more**
 
   ![Python](https://img.shields.io/badge/Python-3.12-blue?style=for-the-badge&logo=python&logoColor=white)
   ![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?style=for-the-badge&logo=fastapi&logoColor=white)
@@ -16,49 +18,49 @@
 
 ---
 
-## Módulos
+## Modules
 
-| Módulo | Descripción |
+| Module | Description |
 |--------|-------------|
-| **Ventas** | Registro de servicios, comisiones automáticas, exportación a Excel/PDF |
-| **Citas** | Agendamiento con vistas Mes / Semana / Día / Agenda, validación de conflictos |
-| **Reservas públicas** | Wizard de agendamiento sin login (estilo Fresha): selección de barbero, servicio, fecha y hora; código de confirmación |
-| **Barberos** | Gestión de colaboradores, comisiones por servicio o porcentaje, foto de perfil |
-| **Empresa** | Configuración de horarios, días operativos, comisión por servicio, logo |
-| **Clientes** | Historial, métricas de retención, nueva visita vs. retorno |
-| **Inventario** | Control de stock, alertas de mínimo, bebidas de cortesía automáticas |
-| **Caja** | Cierres de caja, ajustes, resumen de efectivo por período |
-| **Contabilidad** | Dashboard con split de ingresos: utilidad, salario dueño, impuestos, operación |
-| **Configuración** | Catálogo de servicios/productos, métodos de pago, split de ingresos |
-| **Seguridad** | Roles (superadmin / admin / manager / barber), JWT con refresh tokens |
+| **Sales** | Service registration, automatic commissions, export, **sales editing with inventory adjustment**, and **automatic creation upon appointment confirmation** |
+| **Appointments** | Scheduling with Month / Scrollable Week / 3-Day / Day / Daily Agenda views, **overlapping appointment layout algorithm (side-by-side)**, and conflict validation |
+| **Public Bookings** | No-login scheduling wizard (Fresha style): selection of barber, service, date and time; confirmation code |
+| **Barbers** | Staff management, profile photo, commissions, and **Barber Hours Block (with recurrences and exceptions)** |
+| **Business** | Schedules, operating days, commission per service, and logo configuration |
+| **Clients** | History, retention metrics, new vs. returning clients |
+| **Inventory** | Stock control, minimum stock alerts, automatic courtesy drinks |
+| **Cash Register** | Register closures, adjustments, cash summary by period |
+| **Accounting** | Dashboard with income split: profit, owner salary, taxes, and operations |
+| **Configuration** | Service/product catalog, payment methods, income split |
+| **Security** | Roles (superadmin / admin / manager / barber), JWT with refresh tokens |
 
 ---
 
-## Tecnologías
+## Technologies
 
-| Backend | Frontend | Infra |
+| Backend | Frontend | Infrastructure |
 |---------|----------|-------|
-| FastAPI 0.115 | React 18 + TypeScript | PostgreSQL 17 (externo) |
+| FastAPI 0.115 | React 18 + TypeScript | PostgreSQL 17 (external) |
 | SQLAlchemy 2 | Vite + Tailwind CSS | Docker + Docker Compose |
 | Alembic | Recharts / date-fns | Nginx (reverse proxy) |
 | Pydantic v2 | Lucide React | JWT (access + refresh) |
-| supabase-py 2 | — | Supabase Storage (imágenes) |
+| supabase-py 2 | — | Supabase Storage (images) |
 
 ---
 
-## Arquitectura de despliegue
+## Deployment Architecture
 
 ```
 Browser
-  └── Nginx principal (puerto 80)
+  └── Main Nginx (port 80)
         └── location /barberia/  →  Frontend container (8002)
               ├── /              →  SPA (React)
               └── /api/          →  Backend container (8001)
-                    └── FastAPI  →  PostgreSQL (externo)
-                                 →  Supabase Storage (fotos/logos)
+                    └── FastAPI  →  PostgreSQL (external)
+                                 →  Supabase Storage (photos/logos)
 ```
 
-La app vive en el sub-path `/barberia/`. El Nginx principal debe tener:
+The app lives under the `/barberia/` sub-path. The main Nginx must have:
 
 ```nginx
 location /barberia/ {
@@ -71,88 +73,88 @@ location /barberia/ {
 }
 ```
 
-> La barra final en `proxy_pass` es crítica — stripea el prefijo `/barberia` antes de llegar al contenedor.
+> The trailing slash in `proxy_pass` is critical — it strips the `/barberia` prefix before reaching the container.
 
 ---
 
-## Instalación
+## Installation
 
-### 1. Clonar
+### 1. Clone
 
 ```bash
 git clone https://github.com/LuisFerchx/barbery_system.git
 cd barbery_system
 ```
 
-### 2. Configurar variables de entorno
+### 2. Configure Environment Variables
 
-Editar `backend/.env` (copiar desde `backend/.env.example`):
+Edit `backend/.env` (copy from `backend/.env.example`):
 
 ```env
 DATABASE_URL=postgresql://postgres:PASSWORD@host.docker.internal:5433/barberia
-SECRET_KEY=genera_con_openssl_rand_hex_32
-CORS_ORIGINS=["http://tu-dominio.com"]
+SECRET_KEY=generate_with_openssl_rand_hex_32
+CORS_ORIGINS=["http://your-domain.com"]
 ACCESS_TOKEN_EXPIRE_MINUTES=60
 REFRESH_TOKEN_EXPIRE_DAYS=7
 
-# Supabase Storage (fotos de barberos y logo de empresa)
+# Supabase Storage (barber photos and company logo)
 SUPABASE_URL=https://<project-id>.supabase.co/rest/v1/
 SUPABASE_KEY=<service-role-key>
 SUPABASE_BUCKET=barbery-files
 ```
 
-> Si PostgreSQL corre en la misma máquina que Docker (Linux), agrega a `docker-compose.yml` bajo `backend`:
+> If PostgreSQL runs on the same machine as Docker (Linux), add to `docker-compose.yml` under `backend`:
 > ```yaml
 > extra_hosts:
 >   - "host.docker.internal:host-gateway"
 > ```
-> y usa el puerto expuesto en el host (no el interno del contenedor).
+> and use the port exposed on the host (not the container's internal port).
 
-### 3. Configurar bucket en Supabase
+### 3. Configure Supabase Bucket
 
-1. Crear bucket `barbery-files` en el dashboard de Supabase → Storage
-2. Habilitar acceso público al bucket
+1. Create a `barbery-files` bucket in the Supabase Dashboard → Storage.
+2. Enable public access to the bucket.
 
-### 4. Crear la base de datos
+### 4. Create the Database
 
 ```bash
 docker exec <postgres-container> psql -U postgres -c "CREATE DATABASE barberia;"
 ```
 
-### 5. Levantar contenedores
+### 5. Start Containers
 
 ```bash
 docker compose up -d --build
 ```
 
-Las migraciones de Alembic corren automáticamente al iniciar el backend.
+Alembic migrations run automatically when the backend starts.
 
-### 6. Seed inicial (solo la primera vez)
+### 6. Initial Seed (first time only)
 
 ```bash
 docker compose exec backend python seed.py
 ```
 
-### 7. Acceso
+### 7. Access
 
-| Servicio | URL |
+| Service | URL |
 |----------|-----|
-| App | `http://tu-servidor/barberia/` |
-| Reservas públicas | `http://tu-servidor/barberia/agendar/<slug>` |
-| API Docs | `http://tu-servidor:8001/docs` |
+| App | `http://your-server/barberia/` |
+| Public bookings | `http://your-server/barberia/agendar/<slug>` |
+| API Docs | `http://your-server:8001/docs` |
 
-#### Credenciales por defecto
+#### Default Credentials
 
-| Usuario | Contraseña | Rol |
+| User | Password | Role |
 |---------|------------|-----|
-| `superadmin` | `superadmin123` | Global (sin empresa) |
-| `admin` | `admin123` | Administrador empresa principal |
+| `superadmin` | `superadmin123` | Global (no company) |
+| `admin` | `admin123` | Main company admin |
 
-> Cambiar contraseñas después del primer login.
+> Change passwords after the first login.
 
 ---
 
-## Desarrollo local
+## Local Development
 
 ```bash
 # Backend
@@ -164,63 +166,68 @@ uvicorn app.main:app --reload --port 8001
 cd frontend
 npm run dev        # http://localhost:5173/barberia/
 
-# Migraciones
+# Migrations
 cd backend
 alembic upgrade head
-alembic revision --autogenerate -m "descripcion"
+alembic revision --autogenerate -m "description"
 ```
 
 ---
 
-## Estructura
+## Structure
 
 ```
 barbery_system/
 ├── backend/
 │   ├── app/
-│   │   ├── api/v1/endpoints/   # Rutas FastAPI por dominio
-│   │   ├── crud/               # Lógica de negocio y DB
-│   │   ├── models/             # Modelos SQLAlchemy
-│   │   ├── schemas/            # Schemas Pydantic
+│   │   ├── api/v1/endpoints/   # FastAPI routes by domain
+│   │   ├── crud/               # Business logic and DB
+│   │   ├── models/             # SQLAlchemy models
+│   │   ├── schemas/            # Pydantic schemas
 │   │   ├── utils/
-│   │   │   └── supabase.py     # Cliente Supabase + URL pública de imágenes
-│   │   ├── config.py           # Variables de entorno (pydantic-settings)
+│   │   │   └── supabase.py     # Supabase client + public image URL
+│   │   ├── config.py           # Environment variables (pydantic-settings)
 │   │   ├── database.py         # Engine + get_db()
-│   │   └── security.py         # JWT, hash, dependencias de auth
-│   ├── migrations/             # Migraciones Alembic
+│   │   └── security.py         # JWT, hash, auth dependencies
+│   ├── migrations/             # Alembic migrations
 │   ├── tests/
 │   ├── seed.py
 │   └── requirements.txt
 ├── frontend/
 │   ├── src/
-│   │   ├── pages/              # Una página por ruta
+│   │   ├── pages/              # One page per route
 │   │   ├── components/
-│   │   │   ├── booking/        # Wizard de reserva pública (5 pasos)
-│   │   │   ├── citas/          # Componentes del calendario de citas
+│   │   │   ├── booking/        # Public booking wizard (5 steps)
+│   │   │   ├── citas/          # Appointment calendar components
 │   │   │   ├── layout/         # Layout, Sidebar, Header
 │   │   │   └── ui/             # Table, Modal, StatCard
 │   │   ├── services/
-│   │   │   ├── api.ts          # Wrappers axios por dominio (autenticado)
-│   │   │   └── publicApi.ts    # API pública para reservas sin login
-│   │   ├── types/index.ts      # Interfaces TypeScript
+│   │   │   ├── api.ts          # Domain axios wrappers (authenticated)
+│   │   │   └── publicApi.ts    # Public API for no-login bookings
+│   │   ├── types/index.ts      # TypeScript interfaces
 │   │   └── context/            # AuthContext
-│   ├── nginx.conf              # Nginx del contenedor frontend
+│   ├── nginx.conf              # Frontend container Nginx
 │   └── Dockerfile
 ├── docker-compose.yml
-└── CLAUDE.md
+│   └── CLAUDE.md
 ```
 
 ---
 
-## API — endpoints destacados
+## API — Featured Endpoints
 
-| Método | Ruta | Descripción |
+| Method | Route | Description |
 |--------|------|-------------|
-| `POST` | `/api/v1/barbers/{id}/photo` | Subir foto de perfil del barbero |
-| `POST` | `/api/v1/companies/me/logo` | Subir logo de la empresa |
-| `GET` | `/api/v1/public/{slug}` | Info pública de la barbería |
-| `GET` | `/api/v1/public/{slug}/barbers` | Barberos activos (con foto) |
-| `GET` | `/api/v1/public/{slug}/services` | Servicios disponibles |
-| `GET` | `/api/v1/public/{slug}/slots` | Slots disponibles por barbero/fecha |
-| `POST` | `/api/v1/public/{slug}/book` | Crear reserva (transacción atómica) |
-| `GET` | `/api/v1/public/appointment/{code}` | Consultar reserva por código |
+| `PUT` | `/api/v1/sales/{id}` | Edit sale (modifies courtesy drink stock, commissions, and accounting) |
+| `GET` | `/api/v1/barbers/{barber_id}/hours/` | List a barber's schedules and blocks |
+| `POST` | `/api/v1/barbers/{barber_id}/hours/` | Create a schedule/block for a barber |
+| `PUT` | `/api/v1/barbers/hours/{hours_id}/` | Update a schedule/block |
+| `DELETE` | `/api/v1/barbers/hours/{hours_id}/` | Delete a schedule/block |
+| `POST` | `/api/v1/barbers/{id}/photo` | Upload barber profile photo |
+| `POST` | `/api/v1/companies/me/logo` | Upload company logo |
+| `GET` | `/api/v1/public/{slug}` | Public info of the barbershop |
+| `GET` | `/api/v1/public/{slug}/barbers` | Active barbers (with photo) |
+| `GET` | `/api/v1/public/{slug}/services` | Available services |
+| `GET` | `/api/v1/public/{slug}/slots` | Available slots by barber/date |
+| `POST` | `/api/v1/public/{slug}/book` | Create booking (atomic transaction) |
+| `GET` | `/api/v1/public/appointment/{code}` | Consult booking by code |
