@@ -1,18 +1,34 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Plus, Trash2, Pencil } from 'lucide-react'
+import { Plus, Trash2, Pencil, CalendarDays, Clock, RefreshCw } from 'lucide-react'
 import { usersApi, barbersApi, catalogApi } from '../services/api'
 import Modal from '../components/ui/Modal'
 import Table from '../components/ui/Table'
 import PhoneInput, { splitPhone } from '../components/ui/PhoneInput'
 import { fmt } from '../utils/format'
-import type { User, Barber, ServiceCatalog, ProductCatalog } from '../types'
+import type { User, Barber, BarberHours, ServiceCatalog, ProductCatalog } from '../types'
 import toast from 'react-hot-toast'
 
 type Tab = 'users' | 'barbers' | 'catalog'
 
+const WEEKDAYS_SHORT = [
+  { value: 0, label: 'L' },
+  { value: 1, label: 'M' },
+  { value: 2, label: 'M' },
+  { value: 3, label: 'J' },
+  { value: 4, label: 'V' },
+  { value: 5, label: 'S' },
+  { value: 6, label: 'D' },
+]
+
+
 // ────────── Users ──────────
 const EMPTY_USER = { username: '', full_name: '', email: '', role: 'barber', password: '' }
 
+/**
+ * Renders the Users administration tab with a table of users, inline row actions, and a modal for creating users.
+ *
+ * @returns The Users administration UI containing a users table with toggle/delete actions and a "Nuevo Usuario" creation modal.
+ */
 function UsersTab() {
   const [users, setUsers] = useState<User[]>([])
   const [showModal, setShowModal] = useState(false)
@@ -131,9 +147,476 @@ function UsersTab() {
   )
 }
 
+interface BarberHoursModalProps {
+  open: boolean
+  onClose: () => void
+  barber: Barber
+}
+
+/**
+ * Modal for creating, editing and managing a barber's blocking schedule.
+ *
+ * Loads the barber's existing blocking rules when opened and allows creating or updating recurring blocks, deleting blocks, and creating date-specific exceptions.
+ *
+ * @param open - Whether the modal is visible
+ * @param onClose - Callback invoked to close the modal
+ * @param barber - Barber whose blocking schedule is being managed
+ * @returns The modal dialog JSX for managing a barber's blocking hours
+ */
+function BarberHoursModal({ open, onClose, barber }: BarberHoursModalProps) {
+  const [hoursList, setHoursList] = useState<BarberHours[]>([])
+  const [loading, setLoading] = useState(false)
+  const [saving, setSaving] = useState(false)
+
+  const [name, setName] = useState('Almuerzo')
+  const [startTime, setStartTime] = useState('13:00')
+  const [endTime, setEndTime] = useState('14:00')
+  const [startDate, setStartDate] = useState(() => new Date().toISOString().slice(0, 10))
+  const [endDate, setEndDate] = useState(() => {
+    const d = new Date()
+    d.setFullYear(d.getFullYear() + 1)
+    return d.toISOString().slice(0, 10)
+  })
+  const [isRecurring, setIsRecurring] = useState(true)
+  const [selectedDays, setSelectedDays] = useState<number[]>([0, 1, 2, 3, 4])
+  const [editingId, setEditingId] = useState<number | null>(null)
+
+  const [showExceptionForm, setShowExceptionForm] = useState(false)
+  const [exceptionDate, setExceptionDate] = useState(() => new Date().toISOString().slice(0, 10))
+  const [exceptionStartTime, setExceptionStartTime] = useState('14:00')
+  const [exceptionEndTime, setExceptionEndTime] = useState('15:00')
+  const [selectedParentBlock, setSelectedParentBlock] = useState<BarberHours | null>(null)
+
+  const load = useCallback(() => {
+    setLoading(true)
+    barbersApi.getHours(barber.id)
+      .then(r => setHoursList(r.data))
+      .catch(() => toast.error('Error al cargar bloqueos'))
+      .finally(() => setLoading(false))
+  }, [barber.id])
+
+  useEffect(() => {
+    if (open) {
+      load()
+      resetForm()
+    }
+  }, [open, load])
+
+  const resetForm = () => {
+    setName('Almuerzo')
+    setStartTime('13:00')
+    setEndTime('14:00')
+    setStartDate(new Date().toISOString().slice(0, 10))
+    const d = new Date()
+    d.setFullYear(d.getFullYear() + 1)
+    setEndDate(d.toISOString().slice(0, 10))
+    setIsRecurring(true)
+    setSelectedDays([0, 1, 2, 3, 4])
+    setEditingId(null)
+    setShowExceptionForm(false)
+    setSelectedParentBlock(null)
+  }
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!name.trim() || !startTime || !endTime || !startDate || !endDate) {
+      toast.error('Completa los campos requeridos')
+      return
+    }
+
+    setSaving(true)
+    try {
+      const payload = {
+        name: name.trim(),
+        start_time: startTime,
+        end_time: endTime,
+        start_date: startDate,
+        end_date: endDate,
+        is_recurring: isRecurring,
+        day_of_week: isRecurring ? selectedDays.sort((a,b)=>a-b).join(',') : null,
+      }
+
+      if (editingId) {
+        await barbersApi.updateHours(editingId, payload)
+        toast.success('Bloqueo actualizado')
+      } else {
+        await barbersApi.createHours(barber.id, payload)
+        toast.success('Bloqueo creado')
+      }
+      resetForm()
+      load()
+    } catch {
+      toast.error('Error al guardar bloqueo')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleEdit = (bh: BarberHours) => {
+    setEditingId(bh.id)
+    setName(bh.name)
+    setStartTime(bh.start_time)
+    setEndTime(bh.end_time)
+    setStartDate(bh.start_date)
+    setEndDate(bh.end_date)
+    setIsRecurring(bh.is_recurring)
+    if (bh.day_of_week) {
+      setSelectedDays(bh.day_of_week.split(',').map(Number))
+    } else {
+      setSelectedDays([])
+    }
+    setShowExceptionForm(false)
+  }
+
+  const handleDelete = async (id: number) => {
+    if (!confirm('¿Eliminar este bloqueo de horario?')) return
+    try {
+      await barbersApi.deleteHours(id)
+      toast.success('Bloqueo eliminado')
+      if (editingId === id) resetForm()
+      load()
+    } catch {
+      toast.error('Error al eliminar bloqueo')
+    }
+  }
+
+  const handleOpenException = (bh: BarberHours) => {
+    setSelectedParentBlock(bh)
+    setExceptionDate(new Date().toISOString().slice(0, 10))
+    setExceptionStartTime(bh.start_time)
+    setExceptionEndTime(bh.end_time)
+    setShowExceptionForm(true)
+    setEditingId(null)
+  }
+
+  const handleSaveException = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!selectedParentBlock) return
+
+    setSaving(true)
+    try {
+      const currentExceptions = selectedParentBlock.exceptions
+        ? selectedParentBlock.exceptions.split(',').map(s => s.trim())
+        : []
+      
+      if (!currentExceptions.includes(exceptionDate)) {
+        currentExceptions.push(exceptionDate)
+      }
+
+      await barbersApi.updateHours(selectedParentBlock.id, {
+        exceptions: currentExceptions.join(',')
+      })
+
+      await barbersApi.createHours(barber.id, {
+        name: `Excepción: ${selectedParentBlock.name}`,
+        start_time: exceptionStartTime,
+        end_time: exceptionEndTime,
+        start_date: exceptionDate,
+        end_date: exceptionDate,
+        is_recurring: false,
+      })
+
+      toast.success('Modificado para el día específico')
+      resetForm()
+      load()
+    } catch {
+      toast.error('Error al guardar excepción')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const toggleDay = (day: number) => {
+    setSelectedDays(prev =>
+      prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]
+    )
+  }
+
+  const getDayNames = (dayStr?: string | null) => {
+    if (!dayStr) return 'Todos los días'
+    const days = dayStr.split(',').map(Number)
+    const names = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
+    return days.map(d => names[d]).join(', ')
+  }
+
+  return (
+    <Modal open={open} onClose={onClose} title={`Bloqueos: ${barber.name} ${barber.lastname}`} size="lg">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="lg:col-span-5 space-y-4 lg:border-r lg:border-white/10 lg:pr-6">
+          {!showExceptionForm ? (
+            <form onSubmit={handleSave} className="space-y-3">
+              <h3 className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--gold-400)' }}>
+                {editingId ? 'Editar Regla de Bloqueo' : 'Nuevo Bloqueo de Horas'}
+              </h3>
+              
+              <div>
+                <label className="text-xs block mb-1" style={{ color: 'var(--text-muted)' }}>Motivo / Nombre *</label>
+                <input
+                  className="input w-full"
+                  value={name}
+                  onChange={e => setName(e.target.value)}
+                  placeholder="Ej: Almuerzo, Reunión"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs block mb-1" style={{ color: 'var(--text-muted)' }}>Hora Inicio *</label>
+                  <input
+                    type="time"
+                    className="input w-full"
+                    value={startTime}
+                    onChange={e => setStartTime(e.target.value)}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="text-xs block mb-1" style={{ color: 'var(--text-muted)' }}>Hora Fin *</label>
+                  <input
+                    type="time"
+                    className="input w-full"
+                    value={endTime}
+                    onChange={e => setEndTime(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs block mb-1" style={{ color: 'var(--text-muted)' }}>Fecha Inicio *</label>
+                  <input
+                    type="date"
+                    className="input w-full"
+                    value={startDate}
+                    onChange={e => setStartDate(e.target.value)}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="text-xs block mb-1" style={{ color: 'var(--text-muted)' }}>Fecha Fin *</label>
+                  <input
+                    type="date"
+                    className="input w-full"
+                    value={endDate}
+                    onChange={e => setEndDate(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 py-1">
+                <input
+                  type="checkbox"
+                  id="is_recurring"
+                  checked={isRecurring}
+                  onChange={e => setIsRecurring(e.target.checked)}
+                  className="rounded border-white/10 text-amber-500 focus:ring-amber-500 bg-black/40"
+                />
+                <label htmlFor="is_recurring" className="text-xs select-none" style={{ color: 'var(--text-secondary)' }}>
+                  ¿Es un horario recurrente?
+                </label>
+              </div>
+
+              {isRecurring && (
+                <div>
+                  <label className="text-xs block mb-2" style={{ color: 'var(--text-muted)' }}>Días de Recurrencia</label>
+                  <div className="flex gap-1.5 justify-between py-1">
+                    {WEEKDAYS_SHORT.map(day => {
+                      const isSelected = selectedDays.includes(day.value)
+                      return (
+                        <button
+                          key={day.value}
+                          type="button"
+                          onClick={() => toggleDay(day.value)}
+                          className="w-8 h-8 rounded-full text-xs font-semibold flex items-center justify-center transition-all duration-150"
+                          style={{
+                            background: isSelected ? 'rgba(200, 134, 14, 0.15)' : 'rgba(255, 255, 255, 0.04)',
+                            color: isSelected ? 'var(--gold-400)' : 'var(--text-muted)',
+                            border: isSelected ? '1px solid var(--gold-400)' : '1px solid rgba(255, 255, 255, 0.08)',
+                            boxShadow: isSelected ? '0 0 10px rgba(200, 134, 14, 0.2)' : 'none',
+                          }}
+                        >
+                          {day.label}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex gap-2 pt-2">
+                {editingId && (
+                  <button type="button" onClick={resetForm} className="btn-secondary flex-1 text-xs">
+                    Cancelar
+                  </button>
+                )}
+                <button type="submit" disabled={saving} className="btn-primary flex-1 text-xs">
+                  {saving ? 'Guardando...' : editingId ? 'Actualizar' : 'Crear'}
+                </button>
+              </div>
+            </form>
+          ) : (
+            <form onSubmit={handleSaveException} className="space-y-3">
+              <div className="flex items-center gap-2 mb-1">
+                <button type="button" onClick={resetForm} className="text-xs text-amber-400 hover:underline">
+                  &larr; Volver al formulario regular
+                </button>
+              </div>
+              <h3 className="text-xs font-bold uppercase tracking-wider text-amber-400">
+                Modificar Día Específico
+              </h3>
+              <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                Modifica el horario de <strong>{selectedParentBlock?.name}</strong> solo para un día específico sin romper su configuración recurrente de los demás días.
+              </p>
+
+              <div>
+                <label className="text-xs block mb-1" style={{ color: 'var(--text-muted)' }}>Fecha Específica *</label>
+                <input
+                  type="date"
+                  className="input w-full"
+                  value={exceptionDate}
+                  min={selectedParentBlock?.start_date}
+                  max={selectedParentBlock?.end_date}
+                  onChange={e => setExceptionDate(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs block mb-1" style={{ color: 'var(--text-muted)' }}>Nueva Hora Inicio *</label>
+                  <input
+                    type="time"
+                    className="input w-full"
+                    value={exceptionStartTime}
+                    onChange={e => setExceptionStartTime(e.target.value)}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="text-xs block mb-1" style={{ color: 'var(--text-muted)' }}>Nueva Hora Fin *</label>
+                  <input
+                    type="time"
+                    className="input w-full"
+                    value={exceptionEndTime}
+                    onChange={e => setExceptionEndTime(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button type="button" onClick={resetForm} className="btn-secondary flex-1 text-xs">
+                  Cancelar
+                </button>
+                <button type="submit" disabled={saving} className="btn-primary flex-1 text-xs">
+                  {saving ? 'Guardando...' : 'Aplicar Cambio'}
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
+
+        <div className="lg:col-span-7 flex flex-col min-h-[300px]">
+          <h3 className="text-xs font-bold uppercase tracking-wider mb-3" style={{ color: 'var(--text-muted)' }}>
+            Configuración de Bloqueos Vigentes
+          </h3>
+
+          {loading ? (
+            <div className="flex-1 flex items-center justify-center text-xs" style={{ color: 'var(--text-muted)' }}>
+              Cargando bloqueos...
+            </div>
+          ) : hoursList.length === 0 ? (
+            <div className="flex-1 flex flex-col items-center justify-center text-center p-6 rounded-xl border border-dashed border-white/10 bg-white/[0.01]">
+              <Clock className="opacity-20 mb-2" size={32} style={{ color: 'var(--gold-400)' }} />
+              <p className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>No hay bloqueos configurados</p>
+              <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Usa el panel de la izquierda para definir el horario de almuerzo u otros descansos.</p>
+            </div>
+          ) : (
+            <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
+              {hoursList.map(bh => (
+                <div
+                  key={bh.id}
+                  className="p-3 rounded-xl flex items-center justify-between transition-all duration-150"
+                  style={{
+                    background: 'rgba(255,255,255,0.02)',
+                    border: editingId === bh.id ? '1px solid var(--gold-400)' : '1px solid rgba(255,255,255,0.06)',
+                  }}
+                >
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>
+                        {bh.name}
+                      </span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full font-mono font-medium"
+                        style={{
+                          background: bh.is_recurring ? 'rgba(200,134,14,0.1)' : 'rgba(255,255,255,0.08)',
+                          color: bh.is_recurring ? 'var(--gold-400)' : 'var(--text-muted)',
+                        }}
+                      >
+                        {bh.is_recurring ? 'Recurrente' : 'Específico'}
+                      </span>
+                    </div>
+                    
+                    <p className="text-xs font-semibold text-amber-400">
+                      {bh.start_time} &ndash; {bh.end_time}
+                    </p>
+
+                    <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
+                      Vigencia: {bh.start_date} al {bh.end_date}
+                    </p>
+                    
+                    {bh.is_recurring && (
+                      <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
+                        Días: <span className="text-amber-500/80">{getDayNames(bh.day_of_week)}</span>
+                      </p>
+                    )}
+
+                    {bh.exceptions && (
+                      <p className="text-[10px] text-red-400">
+                        Exclusiones: {bh.exceptions}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="flex gap-1.5 items-center">
+                    {bh.is_recurring && (
+                      <button
+                        onClick={() => handleOpenException(bh)}
+                        className="btn-icon text-xs text-amber-500 hover:text-amber-400"
+                        title="Modificar un día específico"
+                      >
+                        <RefreshCw size={12} />
+                      </button>
+                    )}
+                    <button onClick={() => handleEdit(bh)} className="btn-icon" title="Editar">
+                      <Pencil size={12} />
+                    </button>
+                    <button onClick={() => handleDelete(bh.id)} className="btn-icon text-red-400" title="Eliminar">
+                      <Trash2 size={12} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </Modal>
+  )
+}
+
 // ────────── Barbers ──────────
 const EMPTY_BARBER = { name: '', lastname: '', dialCode: '+57', phone: '', commission_rate: '40' }
 
+/**
+ * Renders the "Barbers" administration tab, including the barbers list, create/edit modal,
+ * photo upload, active-state toggle, and access to the barber hours (blockings) modal.
+ *
+ * @returns The rendered Barbers tab element ready for inclusion in the Admin page.
+ */
 function BarbersTab() {
   const [barbers, setBarbers] = useState<Barber[]>([])
   const [showModal, setShowModal] = useState(false)
@@ -143,6 +626,13 @@ function BarbersTab() {
   const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
+  const [showHoursModal, setShowHoursModal] = useState(false)
+  const [selectedBarberForHours, setSelectedBarberForHours] = useState<Barber | null>(null)
+
+  const openHours = (b: Barber) => {
+    setSelectedBarberForHours(b)
+    setShowHoursModal(true)
+  }
 
   const load = useCallback(() => { barbersApi.list().then(r => setBarbers(r.data)) }, [])
   useEffect(() => { load() }, [load])
@@ -256,6 +746,9 @@ function BarbersTab() {
           const b = row as Barber
           return (
             <div className="flex gap-1">
+              <button onClick={() => openHours(b)} className="btn-icon text-amber-400" title="Gestionar Bloqueos">
+                <CalendarDays size={14} />
+              </button>
               <button onClick={() => openEdit(b)} className="btn-icon"><Pencil size={14} /></button>
               <button onClick={() => handleToggle(b)} className="btn-icon text-xs" title={b.is_active ? 'Desactivar' : 'Activar'}>
                 {b.is_active ? '✗' : '✓'}
@@ -328,6 +821,13 @@ function BarbersTab() {
           </div>
         </div>
       </Modal>
+      {selectedBarberForHours && (
+        <BarberHoursModal
+          open={showHoursModal}
+          onClose={() => { setShowHoursModal(false); setSelectedBarberForHours(null) }}
+          barber={selectedBarberForHours}
+        />
+      )}
     </div>
   )
 }

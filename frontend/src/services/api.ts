@@ -50,6 +50,7 @@ export const salesApi = {
   list: (params?: Record<string, unknown>) => api.get('/sales/', { params }),
   get: (id: number) => api.get(`/sales/${id}`),
   create: (data: unknown) => api.post('/sales/', data),
+  update: (id: number, data: unknown) => api.put(`/sales/${id}`, data),
   delete: (id: number) => api.delete(`/sales/${id}`),
 }
 
@@ -67,6 +68,10 @@ export const barbersApi = {
   update: (id: number, data: unknown) => api.put(`/barbers/${id}`, data),
   uploadPhoto: (id: number, form: FormData) =>
     api.post(`/barbers/${id}/photo`, form, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  getHours: (barberId: number) => api.get(`/barbers/${barberId}/hours/`),
+  createHours: (barberId: number, data: unknown) => api.post(`/barbers/${barberId}/hours/`, data),
+  updateHours: (hoursId: number, data: unknown) => api.put(`/barbers/hours/${hoursId}/`, data),
+  deleteHours: (hoursId: number) => api.delete(`/barbers/hours/${hoursId}/`),
 }
 
 export const clientsApi = {

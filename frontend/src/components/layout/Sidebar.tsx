@@ -23,6 +23,7 @@ const NAV = [
 
 const CITAS_NAV = [
   { to: '/citas', icon: List, label: 'Lista del Día' },
+  { to: '/citas/diario', icon: CalendarDays, label: 'Agenda Diaria' },
   { to: '/citas/calendario', icon: Calendar, label: 'Calendario' },
 ]
 

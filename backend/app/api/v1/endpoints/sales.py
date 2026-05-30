@@ -5,7 +5,7 @@ from datetime import datetime
 from math import ceil
 from ....database import get_db
 from ....crud import sale as crud
-from ....schemas.sale import SaleCreate, SaleOut, SaleListOut
+from ....schemas.sale import SaleCreate, SaleUpdate, SaleOut, SaleListOut
 from ....security import get_current_user, get_company_id
 
 router = APIRouter()
@@ -69,7 +69,50 @@ def get_sale(
     _=Depends(get_current_user),
     company_id: int = Depends(get_company_id),
 ):
+    """
+    Retrieve a sale by ID and return it serialized as a SaleOut.
+    
+    Parameters:
+        sale_id (int): ID of the sale to retrieve.
+    
+    Returns:
+        SaleOut: The sale record enriched with related fields (barber, client, service, courtesy drink) when present.
+    
+    Raises:
+        HTTPException: 404 with message "Venta no encontrada" if the sale does not exist.
+    """
     sale = crud.get_sale(db, company_id, sale_id)
+    if not sale:
+        raise HTTPException(404, "Venta no encontrada")
+    return SaleOut(**_enrich(sale))
+
+
+@router.put("/{sale_id}", response_model=SaleOut)
+def update_sale(
+    sale_id: int,
+    data: SaleUpdate,
+    db: Session = Depends(get_db),
+    _=Depends(get_current_user),
+    company_id: int = Depends(get_company_id),
+):
+    """
+    Update an existing sale and return its enriched serialized representation.
+    
+    Parameters:
+        sale_id (int): Identifier of the sale to update.
+        data (SaleUpdate): Fields to apply to the sale.
+    
+    Returns:
+        SaleOut: The updated sale serialized with related/enriched fields (e.g., barber/client/service names).
+    
+    Raises:
+        HTTPException: 400 if the update request is invalid (propagated from the CRUD layer).
+        HTTPException: 404 if no sale with the given `sale_id` exists for the current company.
+    """
+    try:
+        sale = crud.update_sale(db, company_id, sale_id, data)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
     if not sale:
         raise HTTPException(404, "Venta no encontrada")
     return SaleOut(**_enrich(sale))
@@ -82,6 +125,18 @@ def delete_sale(
     _=Depends(get_current_user),
     company_id: int = Depends(get_company_id),
 ):
+    """
+    Delete a sale by its ID for the current company.
+    
+    Parameters:
+        sale_id (int): ID of the sale to delete.
+    
+    Returns:
+        dict: `{"ok": True}` when the sale was successfully deleted.
+    
+    Raises:
+        HTTPException: 404 if the sale is not found.
+    """
     obj = crud.delete_sale(db, company_id, sale_id)
     if not obj:
         raise HTTPException(404, "Venta no encontrada")

@@ -3,9 +3,12 @@ import { Clock, User, Scissors, Calendar, RefreshCw, XCircle, CheckCircle, Alert
 import QRCode from 'react-qr-code'
 import toast from 'react-hot-toast'
 import Modal from '../ui/Modal'
-import { appointmentsApi, barbersApi, clientsApi, catalogApi } from '../../services/api'
+import { appointmentsApi, barbersApi, clientsApi, catalogApi, companiesApi, salesApi } from '../../services/api'
+import { bookingApi } from '../../services/publicApi'
 import { fmt } from '../../utils/format'
-import type { Appointment, Barber, Client, ServiceCatalog } from '../../types'
+import type { Appointment, Barber, Client, ServiceCatalog, Company } from '../../types'
+import type { SlotPublic } from '../../services/publicApi'
+
 
 type Mode = 'create' | 'view' | 'reschedule'
 
@@ -16,6 +19,7 @@ interface Props {
   appointment?: Appointment | null
   defaultDate?: string
   defaultTime?: string
+  defaultBarberId?: string | number
   onSaved: () => void
   onReschedule?: (appointment: Appointment) => void
 }
@@ -36,51 +40,37 @@ const STATUS_COLORS: Record<string, string> = {
   no_show: '#9ca3af',
 }
 
-/**
- * Generate 15-minute time slots for a full day in `HH:MM` format.
- *
- * @returns An array of time strings from `00:00` to `23:45` at 15-minute intervals (e.g., `00:00`, `00:15`, …, `23:45`)
- */
-function generateTimeSlots(): string[] {
-  const slots: string[] = []
-  for (let h = 0; h < 24; h++) {
-    for (let m = 0; m < 60; m += 15) {
-      slots.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`)
-    }
-  }
-  return slots
-}
 
-const TIME_SLOTS = generateTimeSlots()
 
 /**
- * Render a modal for creating, viewing, and rescheduling appointments.
+ * Render the appointment modal for creating, viewing, or rescheduling an appointment.
  *
- * The component manages local state for selectable barbers, clients, and services,
- * provides form controls for creating or rescheduling an appointment, displays
- * appointment details in view mode, and performs create/reschedule/status/cancel
- * actions via the appointments API. It also exposes a Google Calendar link for a shown appointment.
+ * Supports three modes ("create" | "view" | "reschedule"), loads barber/client/service catalogs and available booking slots, and performs create, reschedule, status update, and cancel actions via the appointments API.
  *
  * @param open - Whether the modal is visible
  * @param onClose - Callback to close the modal
- * @param mode - One of `'create' | 'view' | 'reschedule'` to select the modal behavior
+ * @param mode - One of `'create' | 'view' | 'reschedule'` that selects the modal behavior
  * @param appointment - Appointment to display or reschedule (required for `view` and `reschedule` modes)
- * @param defaultDate - Optional initial date for create/reschedule forms in `YYYY-MM-DD` format
- * @param defaultTime - Optional initial time for create/reschedule forms in `HH:MM` format
+ * @param defaultDate - Optional initial date for forms in `YYYY-MM-DD` format
+ * @param defaultTime - Optional initial time for forms in `HH:MM` format
+ * @param defaultBarberId - Optional initial barber ID used when opening in `create` mode
  * @param onSaved - Callback invoked after a successful create, reschedule, status change, or cancellation
- * @param onReschedule - Optional callback invoked when the user requests to reschedule from view mode
- * @returns The modal's JSX element rendering the appointment UI for the selected mode
+ * @param onReschedule - Optional callback invoked when reschedule is requested from view mode
+ * @returns The modal's rendered JSX element for the selected mode
  */
-export default function CitaModal({ open, onClose, mode, appointment, defaultDate, defaultTime, onSaved, onReschedule }: Props) {
+export default function CitaModal({ open, onClose, mode, appointment, defaultDate, defaultTime, defaultBarberId, onSaved, onReschedule }: Props) {
   const [barbers, setBarbers] = useState<Barber[]>([])
   const [clients, setClients] = useState<Client[]>([])
   const [services, setServices] = useState<ServiceCatalog[]>([])
+  const [company, setCompany] = useState<Company | null>(null)
+  const [slots, setSlots] = useState<SlotPublic[]>([])
+  const [loadingSlots, setLoadingSlots] = useState(false)
 
   const [barberId, setBarberId] = useState('')
   const [serviceId, setServiceId] = useState('')
   const [clientId, setClientId] = useState('')
   const [date, setDate] = useState(defaultDate || new Date().toISOString().slice(0, 10))
-  const [time, setTime] = useState(defaultTime || '09:00')
+  const [time, setTime] = useState(defaultTime || '')
   const [notes, setNotes] = useState('')
   const [loading, setLoading] = useState(false)
   const [showShare, setShowShare] = useState(false)
@@ -97,30 +87,32 @@ export default function CitaModal({ open, onClose, mode, appointment, defaultDat
 
   const loadCatalog = useCallback(async () => {
     try {
-      const [b, c, s] = await Promise.all([
+      const [b, c, s, comp] = await Promise.all([
         barbersApi.list({ active_only: true }),
         clientsApi.list({ active_only: true }),
         catalogApi.services({ active_only: true }),
+        companiesApi.getMe(),
       ])
       setBarbers(b.data as Barber[])
       setClients(c.data as Client[])
       setServices(s.data as ServiceCatalog[])
+      setCompany(comp.data as Company)
     } catch {
       // silent
     }
   }, [])
 
   useEffect(() => {
-    if (open && (mode === 'create' || mode === 'reschedule')) loadCatalog()
-  }, [open, mode, loadCatalog])
+    if (open) loadCatalog()
+  }, [open, loadCatalog])
 
   useEffect(() => {
     if (open && mode === 'create') {
-      setBarberId('')
+      setBarberId(defaultBarberId ? String(defaultBarberId) : '')
       setServiceId('')
       setClientId('')
       setDate(defaultDate || new Date().toISOString().slice(0, 10))
-      setTime(defaultTime || '09:00')
+      setTime(defaultTime || '')
       setNotes('')
     }
     if (open && mode === 'reschedule' && appointment) {
@@ -128,7 +120,62 @@ export default function CitaModal({ open, onClose, mode, appointment, defaultDat
       setDate(dt.toISOString().slice(0, 10))
       setTime(`${String(dt.getUTCHours()).padStart(2, '0')}:${String(dt.getUTCMinutes()).padStart(2, '0')}`)
     }
-  }, [open, mode, appointment, defaultDate, defaultTime])
+  }, [open, mode, appointment, defaultDate, defaultTime, defaultBarberId])
+
+  useEffect(() => {
+    const activeBarberId = mode === 'reschedule' ? appointment?.barber_id : Number(barberId)
+    const activeServiceId = mode === 'reschedule' ? appointment?.service_id : Number(serviceId)
+    const slug = company?.slug
+
+    if (!slug || !activeBarberId || !activeServiceId || !date) {
+      setSlots([])
+      return
+    }
+
+    setLoadingSlots(true)
+    setSlots([])
+    bookingApi
+      .getSlots(slug, { barber_id: activeBarberId, date, service_id: activeServiceId })
+      .then((r) => {
+        setSlots(r.data)
+      })
+      .catch(() => {
+        setSlots([])
+      })
+      .finally(() => {
+        setLoadingSlots(false)
+      })
+  }, [company?.slug, barberId, serviceId, date, mode, appointment])
+
+  const displaySlots = (() => {
+    if (mode !== 'reschedule' || !appointment) return slots
+
+    const apptDt = new Date(appointment.scheduled_at)
+    const apptDateStr = apptDt.toISOString().slice(0, 10)
+    const apptTimeStr = `${String(apptDt.getUTCHours()).padStart(2, '0')}:${String(apptDt.getUTCMinutes()).padStart(2, '0')}`
+
+    if (date === apptDateStr && !slots.some(s => s.time === apptTimeStr)) {
+      const newSlot: SlotPublic = {
+        time: apptTimeStr,
+        datetime: appointment.scheduled_at
+      }
+      const combined = [...slots, newSlot]
+      return combined.sort((a, b) => a.time.localeCompare(b.time))
+    }
+
+    return slots
+  })()
+
+  useEffect(() => {
+    if (displaySlots.length > 0) {
+      const exists = displaySlots.some(s => s.time === time)
+      if (!exists) {
+        setTime(displaySlots[0].time)
+      }
+    } else if (!loadingSlots) {
+      setTime('')
+    }
+  }, [displaySlots, loadingSlots])
 
   const handleCreate = async () => {
     if (!barberId || !serviceId || !date || !time) {
@@ -177,12 +224,38 @@ export default function CitaModal({ open, onClose, mode, appointment, defaultDat
     if (!appointment) return
     setLoading(true)
     try {
+      if (status === 'confirmed') {
+        const selectedService = services.find(s => s.id === appointment.service_id)
+        if (!selectedService) {
+          toast.error('No se encontró el servicio en el catálogo para registrar la venta')
+          setLoading(false)
+          return
+        }
+
+        await salesApi.create({
+          date: appointment.scheduled_at,
+          client_id: appointment.client_id || null,
+          barber_id: appointment.barber_id,
+          service_id: appointment.service_id,
+          gross_total: Number(selectedService.price),
+          payment_method: 'cash',
+          is_returning_client: false,
+          courtesy_drink_given: false,
+          courtesy_drink_item_id: null,
+          cross_sell: false,
+          notes: appointment.notes || 'Creado automáticamente al confirmar cita',
+        })
+
+        toast.success('¡Venta registrada con éxito!')
+      }
+
       await appointmentsApi.update(appointment.id, { status })
       toast.success('Estado actualizado')
       onSaved()
       onClose()
-    } catch {
-      toast.error('Error al actualizar')
+    } catch (e: unknown) {
+      const msg = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail
+      toast.error(msg || 'Error al actualizar el estado y registrar la venta')
     } finally {
       setLoading(false)
     }
@@ -296,38 +369,83 @@ export default function CitaModal({ open, onClose, mode, appointment, defaultDat
 
       {/* CREATE mode */}
       {mode === 'create' && (
-        <div className="space-y-3">
+        <div className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="label">Fecha *</label>
-              <input type="date" className="input w-full" value={date} min={new Date().toISOString().slice(0, 10)} onChange={e => setDate(e.target.value)} />
+              <label className="label">Barbero *</label>
+              <select className="input w-full" value={barberId} onChange={e => setBarberId(e.target.value)}>
+                <option value="">Seleccionar barbero</option>
+                {barbers.map(b => (
+                  <option key={b.id} value={b.id}>{b.name} {b.lastname}</option>
+                ))}
+              </select>
             </div>
             <div>
-              <label className="label">Hora *</label>
-              <select className="input w-full" value={time} onChange={e => setTime(e.target.value)}>
-                {TIME_SLOTS.map(t => <option key={t} value={t}>{t}</option>)}
+              <label className="label">Servicio *</label>
+              <select className="input w-full" value={serviceId} onChange={e => setServiceId(e.target.value)}>
+                <option value="">Seleccionar servicio</option>
+                {services.map(s => (
+                  <option key={s.id} value={s.id}>{s.name} ({s.duration ?? 30} min)</option>
+                ))}
               </select>
             </div>
           </div>
 
           <div>
-            <label className="label">Barbero *</label>
-            <select className="input w-full" value={barberId} onChange={e => setBarberId(e.target.value)}>
-              <option value="">Seleccionar barbero</option>
-              {barbers.map(b => (
-                <option key={b.id} value={b.id}>{b.name} {b.lastname}</option>
-              ))}
-            </select>
+            <label className="label">Fecha *</label>
+            <input type="date" className="input w-full" value={date} min={new Date().toISOString().slice(0, 10)} onChange={e => setDate(e.target.value)} />
           </div>
 
           <div>
-            <label className="label">Servicio *</label>
-            <select className="input w-full" value={serviceId} onChange={e => setServiceId(e.target.value)}>
-              <option value="">Seleccionar servicio</option>
-              {services.map(s => (
-                <option key={s.id} value={s.id}>{s.name} ({s.duration ?? 30} min)</option>
-              ))}
-            </select>
+            <label className="label flex items-center gap-1.5">
+              <Clock size={14} style={{ color: 'var(--gold-400)' }} />
+              <span>Horarios Disponibles *</span>
+              {selectedService && (
+                <span className="text-[10px] font-normal px-2 py-0.5 rounded-full" style={{ background: 'rgba(200,134,14,0.1)', color: 'var(--gold-400)', border: '1px solid rgba(200,134,14,0.2)' }}>
+                  {duration} min
+                </span>
+              )}
+            </label>
+
+            {loadingSlots ? (
+              <div className="grid grid-cols-4 gap-2">
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <div key={i} className="h-9 rounded-xl animate-pulse" style={{ background: 'var(--surface-2)' }} />
+                ))}
+              </div>
+            ) : !barberId || !serviceId ? (
+              <div className="text-center py-5 rounded-xl text-xs flex flex-col items-center justify-center gap-1.5" style={{ background: 'var(--surface-2)', color: 'var(--text-muted)', border: '1px dashed var(--surface-border)' }}>
+                <Clock size={16} className="opacity-60" style={{ color: 'var(--gold-400)' }} />
+                <span>Selecciona barbero y servicio para ver horarios disponibles</span>
+              </div>
+            ) : displaySlots.length === 0 ? (
+              <div className="text-center py-5 rounded-xl text-xs flex flex-col items-center justify-center gap-1.5" style={{ background: 'rgba(239, 68, 68, 0.05)', color: '#f87171', border: '1px solid rgba(239, 68, 68, 0.15)' }}>
+                <AlertCircle size={16} className="text-red-400" />
+                <span>No hay horarios disponibles para esta fecha. Intenta otro día.</span>
+              </div>
+            ) : (
+              <div className="grid grid-cols-4 gap-2 max-h-40 overflow-y-auto p-0.5 pr-1 scrollbar-thin scrollbar-thumb-gold-400">
+                {displaySlots.map((slot) => {
+                  const isSelected = slot.time === time
+                  return (
+                    <button
+                      key={slot.time}
+                      type="button"
+                      onClick={() => setTime(slot.time)}
+                      className="py-2 rounded-xl text-xs font-semibold cursor-pointer transition-all duration-150 text-center"
+                      style={{
+                        background: isSelected ? 'var(--gold-400)' : 'var(--surface-2)',
+                        color: isSelected ? '#000' : 'var(--text-secondary)',
+                        border: isSelected ? '1px solid var(--gold-400)' : '1px solid var(--surface-border)',
+                        boxShadow: isSelected ? '0 0 12px rgba(228,162,37,0.25)' : 'none',
+                      }}
+                    >
+                      {slot.time}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
           </div>
 
           {serviceId && time && (
@@ -382,17 +500,51 @@ export default function CitaModal({ open, onClose, mode, appointment, defaultDat
             <span>{appointment.duration_minutes} min</span>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="label">Nueva fecha *</label>
-              <input type="date" className="input w-full" value={date} min={new Date().toISOString().slice(0, 10)} onChange={e => setDate(e.target.value)} />
-            </div>
-            <div>
-              <label className="label">Nueva hora *</label>
-              <select className="input w-full" value={time} onChange={e => setTime(e.target.value)}>
-                {TIME_SLOTS.map(t => <option key={t} value={t}>{t}</option>)}
-              </select>
-            </div>
+          <div>
+            <label className="label">Nueva fecha *</label>
+            <input type="date" className="input w-full" value={date} min={new Date().toISOString().slice(0, 10)} onChange={e => setDate(e.target.value)} />
+          </div>
+
+          <div>
+            <label className="label flex items-center gap-1.5">
+              <Clock size={14} style={{ color: 'var(--gold-400)' }} />
+              <span>Horarios Disponibles *</span>
+            </label>
+
+            {loadingSlots ? (
+              <div className="grid grid-cols-4 gap-2">
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <div key={i} className="h-9 rounded-xl animate-pulse" style={{ background: 'var(--surface-2)' }} />
+                ))}
+              </div>
+            ) : displaySlots.length === 0 ? (
+              <div className="text-center py-5 rounded-xl text-xs flex flex-col items-center justify-center gap-1.5" style={{ background: 'rgba(239, 68, 68, 0.05)', color: '#f87171', border: '1px solid rgba(239, 68, 68, 0.15)' }}>
+                <AlertCircle size={16} className="text-red-400" />
+                <span>No hay horarios disponibles para esta fecha. Intenta otro día.</span>
+              </div>
+            ) : (
+              <div className="grid grid-cols-4 gap-2 max-h-40 overflow-y-auto p-0.5 pr-1 scrollbar-thin scrollbar-thumb-gold-400">
+                {displaySlots.map((slot) => {
+                  const isSelected = slot.time === time
+                  return (
+                    <button
+                      key={slot.time}
+                      type="button"
+                      onClick={() => setTime(slot.time)}
+                      className="py-2 rounded-xl text-xs font-semibold cursor-pointer transition-all duration-150 text-center"
+                      style={{
+                        background: isSelected ? 'var(--gold-400)' : 'var(--surface-2)',
+                        color: isSelected ? '#000' : 'var(--text-secondary)',
+                        border: isSelected ? '1px solid var(--gold-400)' : '1px solid var(--surface-border)',
+                        boxShadow: isSelected ? '0 0 12px rgba(228,162,37,0.25)' : 'none',
+                      }}
+                    >
+                      {slot.time}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
           </div>
 
           {time && (

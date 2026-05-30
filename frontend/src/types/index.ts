@@ -320,3 +320,18 @@ export interface AppointmentListOut {
   page_size: number
   pages: number
 }
+
+export interface BarberHours {
+  id: number
+  company_id: number
+  barber_id: number
+  name: string
+  start_time: string
+  end_time: string
+  start_date: string
+  end_date: string
+  is_recurring: boolean
+  day_of_week?: string | null
+  exceptions?: string | null
+}
+

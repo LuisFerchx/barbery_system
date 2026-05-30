@@ -18,6 +18,14 @@ class SaleCreate(BaseModel):
     notes: Optional[str] = None
 
 
+class SaleUpdate(BaseModel):
+    payment_method: Optional[str] = None
+    is_returning_client: Optional[bool] = None
+    courtesy_drink_given: Optional[bool] = None
+    courtesy_drink_item_id: Optional[int] = None
+    notes: Optional[str] = None
+
+
 class SaleOut(BaseModel):
     id: int
     number: str

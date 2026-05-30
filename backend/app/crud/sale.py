@@ -10,10 +10,16 @@ from ..models.company import Company
 from ..models.catalog import ServiceCatalog
 from ..models.config import IncomeSplitConfig
 from ..models.inventory import InventoryItem, InventoryMovement
-from ..schemas.sale import SaleCreate
+from ..schemas.sale import SaleCreate, SaleUpdate
 
 
 def generate_sale_number(db: Session) -> str:
+    """
+    Generate a unique sale number in the format CRT-XXXXXX where each X is an uppercase letter or digit.
+    
+    Returns:
+        str: A unique sale number matching the pattern `CRT-XXXXXX` (6 random uppercase letters/digits) that does not collide with any existing Sale.number in the database.
+    """
     chars = string.ascii_uppercase + string.digits
     while True:
         suffix = "".join(secrets.choice(chars) for _ in range(6))
@@ -183,6 +189,17 @@ def create_sale(db: Session, company_id: int, sale_in: SaleCreate):
 
 
 def delete_sale(db: Session, company_id: int, sale_id: int):
+    """
+    Delete a sale record for a given company and sale ID.
+    
+    Parameters:
+        db (Session): Database session.
+        company_id (int): ID of the company that must own the sale.
+        sale_id (int): ID of the sale to delete.
+    
+    Returns:
+        Sale | None: The deleted Sale ORM object if it existed and was removed, otherwise `None`.
+    """
     db_obj = db.query(Sale).filter(
         Sale.id == sale_id,
         Sale.company_id == company_id,
@@ -191,3 +208,85 @@ def delete_sale(db: Session, company_id: int, sale_id: int):
         db.delete(db_obj)
         db.commit()
     return db_obj
+
+
+def _restore_courtesy_drink_stock(db: Session, company_id: int, item_id: int, sale_id: int):
+    """
+    Restore one unit to a courtesy inventory item's stock and record an incoming inventory movement.
+    
+    Parameters:
+        company_id (int): ID of the company that owns the inventory item.
+        item_id (int): ID of the inventory item to restore.
+        sale_id (int): ID of the sale that triggered the restoration; used in the movement reason.
+    
+    Description:
+        If an active inventory item matching `item_id` and `company_id` is found, increments its `stock_current` by 1
+        and creates an `InventoryMovement` with movement_type "in", quantity 1, a reason referencing `sale_id`, the
+        current UTC date, and no associated `product_sale_id`. If no matching item exists, the function does nothing.
+    """
+    item = db.query(InventoryItem).filter(
+        InventoryItem.id == item_id,
+        InventoryItem.company_id == company_id,
+    ).first()
+    if item:
+        item.stock_current = item.stock_current + Decimal("1")
+        db.add(InventoryMovement(
+            item_id=item.id,
+            movement_type="in",
+            quantity=Decimal("1"),
+            reason=f"Restauración por modificación de cortesía en corte #{sale_id}",
+            date=datetime.utcnow(),
+            product_sale_id=None,
+        ))
+
+
+def update_sale(db: Session, company_id: int, sale_id: int, sale_in: SaleUpdate) -> Optional[Sale]:
+    """
+    Update an existing Sale and adjust courtesy-drink inventory when its courtesy fields change.
+    
+    Updates mutable sale fields (payment_method, is_returning_client, notes, courtesy_drink_given, courtesy_drink_item_id). If the courtesy drink is enabled or the selected courtesy item changes, restores stock for the previously selected item when applicable and deducts stock for the current item; if the courtesy drink is disabled, restores stock for the previously selected item and clears the stored courtesy item. Commits the changes and returns the refreshed Sale.
+    
+    Returns:
+        The updated `Sale` instance if the sale was found and updated, or `None` if no matching sale exists.
+    """
+    db_obj = db.query(Sale).filter(
+        Sale.id == sale_id,
+        Sale.company_id == company_id,
+    ).first()
+    if not db_obj:
+        return None
+
+    old_drink_given = db_obj.courtesy_drink_given
+    old_drink_item_id = db_obj.courtesy_drink_item_id
+
+    # Actualizar campos directos
+    if sale_in.payment_method is not None:
+        db_obj.payment_method = sale_in.payment_method
+    if sale_in.is_returning_client is not None:
+        db_obj.is_returning_client = sale_in.is_returning_client
+    if sale_in.notes is not None:
+        db_obj.notes = sale_in.notes
+
+    # Control y validaciones de bebida de cortesía
+    if sale_in.courtesy_drink_given is not None:
+        db_obj.courtesy_drink_given = sale_in.courtesy_drink_given
+    if sale_in.courtesy_drink_item_id is not None:
+        db_obj.courtesy_drink_item_id = sale_in.courtesy_drink_item_id
+
+    # Aplicar movimientos de inventario según el cambio
+    if db_obj.courtesy_drink_given:
+        # Caso A: Se activó ahora o se cambió la bebida seleccionada
+        if not old_drink_given or (sale_in.courtesy_drink_item_id is not None and old_drink_item_id != db_obj.courtesy_drink_item_id):
+            if old_drink_given and old_drink_item_id:
+                _restore_courtesy_drink_stock(db, company_id, old_drink_item_id, sale_id)
+            
+            _deduct_courtesy_drink(db_obj.id, db, company_id, item_id=db_obj.courtesy_drink_item_id)
+    else:
+        # Caso B: Se desactivó la bebida
+        if old_drink_given and old_drink_item_id:
+            _restore_courtesy_drink_stock(db, company_id, old_drink_item_id, sale_id)
+        db_obj.courtesy_drink_item_id = None
+
+    db.commit()
+    db.refresh(db_obj)
+    return get_sale(db, company_id, db_obj.id)
