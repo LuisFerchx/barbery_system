@@ -75,10 +75,11 @@ function fmtTime(iso: string) {
 }
 
 /**
- * Compute the vertical pixel offset for an appointment's start time within the calendar time grid.
+ * Calculate the vertical pixel offset for an appointment's start time inside the time grid.
  *
- * @param iso - ISO 8601 datetime string for the appointment start (interpreted in UTC)
- * @returns The top offset in pixels from the start of the visible grid; `0` if the time is before `START_HOUR`
+ * @param iso - ISO 8601 datetime string for the appointment start; interpreted using UTC components
+ * @param hourHeight - Pixel height representing one hour in the grid (defaults to `HOUR_HEIGHT`)
+ * @returns The top offset in pixels from the grid's visible start; `0` if the appointment begins before `START_HOUR`
  */
 function apptTopPx(iso: string, hourHeight: number = HOUR_HEIGHT): number {
   const d = new Date(iso)
@@ -103,12 +104,14 @@ interface PositionedAppointment {
 }
 
 /**
- * Computes non-overlapping positions for a list of appointments on a single day.
- * It uses a standard calendar grid layout algorithm to group overlapping
- * appointments into clusters and assign column indices.
+ * Compute horizontal layout positions for appointments that may overlap within a single day.
  *
- * @param dayAppts - List of appointments for a single day
- * @returns List of positioned appointments with left and width percentages
+ * Groups appointments that overlap into clusters and assigns each appointment a column so
+ * overlapping appointments do not visually collide; returns each appointment with `left`
+ * and `width` expressed as percentages of the day column.
+ *
+ * @param dayAppts - Appointments occurring on the same day
+ * @returns Positioned appointments where `left` is the horizontal offset percentage and `width` is the column width percentage
  */
 function computePositionedAppointments(dayAppts: Appointment[]): PositionedAppointment[] {
   if (dayAppts.length === 0) return []
@@ -192,9 +195,10 @@ function computePositionedAppointments(dayAppts: Appointment[]): PositionedAppoi
 }
 
 /**
- * Render the current time indicator line positioned within the calendar's hour grid.
+ * Renders a horizontal current-time indicator positioned in the calendar's hour grid.
  *
- * @returns A DOM element showing a horizontal line with a small circular marker at the current UTC time relative to `START_HOUR`–`END_HOUR`, or `null` if the current time falls outside the visible grid.
+ * @param hourHeight - Vertical pixels per hour used to compute the indicator's vertical position
+ * @returns A DOM element showing a horizontal line with a small circular marker at the current UTC time relative to `START_HOUR`–`END_HOUR`, or `null` if the current time is outside the visible hour range
  */
 function TodayLine({ hourHeight = HOUR_HEIGHT }: { hourHeight?: number }) {
   const now = new Date()

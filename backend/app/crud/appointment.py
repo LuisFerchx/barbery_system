@@ -161,9 +161,9 @@ def _check_barber_conflict(
     exclude_id: Optional[int] = None,
 ) -> None:
     """
-    Raise if the barber has an active appointment that overlaps the given time window.
+    Check for overlapping active appointments for a barber and raise a conflict error.
     
-    Checks for appointments in ACTIVE_STATUSES for the specified company and barber whose time ranges intersect the interval [scheduled_at, end_at). If an overlapping appointment exists, raises a ValueError.
+    Checks active appointments for the given company and barber; if any appointment's time interval intersects [scheduled_at, end_at) (optionally ignoring the appointment with id `exclude_id`), raises a ValueError.
     
     Parameters:
         company_id (int): Company identifier to scope the search.
@@ -196,7 +196,10 @@ def _check_barber_block_conflict(
     end_at: datetime,
 ) -> None:
     """
-    Raise if the barber has a blocked hours configuration that overlaps the proposed time.
+    Check whether the barber has any blocked intervals that overlap a proposed appointment time.
+    
+    Raises:
+        ValueError: If any blocked interval overlaps the [scheduled_at, end_at) window; message is "El barbero tiene un bloqueo de horario en ese momento".
     """
     from .barber_hours import get_blocked_intervals
 
@@ -277,17 +280,17 @@ def get_appointment(db: Session, company_id: int, appointment_id: int) -> Option
 
 def create_appointment(db: Session, company_id: int, data: AppointmentCreate) -> Appointment:
     """
-    Create a new appointment for the specified company after validating related entities, schedule constraints, and barber availability.
+    Create a new appointment for the specified company after validating related entities, company schedule, and barber availability.
     
     Parameters:
         company_id (int): ID of the company where the appointment will be created.
-        data (AppointmentCreate): Appointment payload containing service_id, barber_id, client_id (optional), scheduled_at, notes, etc.
+        data (AppointmentCreate): Appointment payload (includes service_id, barber_id, optional client_id, scheduled_at, notes, etc.).
     
     Returns:
-        Appointment: The newly created appointment, loaded with related barber, client, and service.
+        Appointment: The created appointment with related barber, client, and service loaded.
     
     Raises:
-        ValueError: If the service or barber is not found or inactive; if the provided client_id exists but the client is not found or inactive; if the appointment is outside company operating hours or operating days; or if the barber has a conflicting appointment.
+        ValueError: If the service, barber, or provided client is not found or inactive; if the appointment falls outside company operating hours or allowed operating days; if the barber has an overlapping active appointment; or if the appointment overlaps a barber blocked interval.
     """
     service = db.query(ServiceCatalog).filter(
         ServiceCatalog.id == data.service_id,
@@ -347,15 +350,16 @@ def reschedule_appointment(
     db: Session, company_id: int, appointment_id: int, data: AppointmentReschedule
 ) -> Optional[Appointment]:
     """
-    Change an appointment's scheduled time and end time, revalidate the company's schedule and barber conflicts, and set the appointment status to "pending".
+    Reschedule an appointment to a new start time and revalidate company hours and barber availability.
+    
+    Updates the appointment's scheduled_at, end_at, and sets status to "pending" after validating the new time against company operating hours and allowed days, checking for overlapping active appointments and barber blocked intervals.
     
     Returns:
-    	Appointment: The updated appointment with related barber/client/service loaded if the appointment was found and updated.
-    	None: If no appointment with the given id and company_id exists.
+        The updated Appointment with barber, client, and service relations loaded, or `None` if no appointment with the given id and company_id exists.
     
     Raises:
-    	ValueError: If the appointment's current status is "cancelled", "completed", or "no_show".
-    	ValueError: If schedule validation or barber conflict checks fail.
+        ValueError: If the appointment's current status disallows rescheduling ("cancelled", "completed", or "no_show").
+        ValueError: If the new time violates company schedule constraints or overlaps existing appointments or barber blocked intervals.
     """
     appt = db.query(Appointment).filter(
         Appointment.id == appointment_id,

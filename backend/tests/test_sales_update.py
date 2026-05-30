@@ -14,6 +14,18 @@ from app.schemas.sale import SaleCreate
 @pytest.fixture
 def sample_data(db):
     # Create a Barber
+    """
+    Seed the provided database session with sample entities used by tests and commit the transaction.
+    
+    Parameters:
+        db: Database session used by the tests; entities will be added and committed to this session.
+    
+    Details:
+        Inserts one Barber (id=1), one ServiceCatalog (id=1), one active Client (id=1),
+        and two active courtesy InventoryItem records:
+          - InventoryItem id=1 ("Soda") with stock_current=10.0, stock_minimum=2.0, cost_per_unit=0.5
+          - InventoryItem id=2 ("Water") with stock_current=5.0, stock_minimum=1.0, cost_per_unit=0.2
+    """
     barber = Barber(id=1, company_id=1, name="John", lastname="Doe", commission_rate=Decimal("0.4"))
     db.add(barber)
 

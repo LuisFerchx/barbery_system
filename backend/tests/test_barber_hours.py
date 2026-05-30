@@ -20,6 +20,14 @@ from app.schemas.appointment import AppointmentCreate, AppointmentReschedule
 @pytest.fixture
 def sample_data(db):
     # Set company operating hours
+    """
+    Populate the database with sample data used by tests: sets company operating hours and operating days, and creates a barber (id=1) and a service (id=1).
+     
+    Creates:
+    - Company operating hours: open "08:00", close "18:00", operating_days "0,1,2,3,4,5,6".
+    - Barber with id=1, company_id=1, name "Diego Maradona", active.
+    - ServiceCatalog with id=1, company_id=1, name "Corte Premium", category "haircut", price 20.0, duration 60, active.
+    """
     company = db.query(Company).filter(Company.id == 1).first()
     company.open_hour = "08:00"
     company.close_hour = "18:00"
@@ -88,6 +96,11 @@ def test_blocked_intervals_calculation(db, sample_data):
 
 
 def test_available_slots_exclude_blocked_hours(db, sample_data):
+    """
+    Verifies available appointment slots exclude times that overlap a non-recurring blocked interval for a specific date.
+    
+    Checks that a slot at "13:00" is initially available, creates a one-day non-recurring barber block from 13:00 to 14:00 on 2026-06-01, and then asserts that available slots for that date no longer include the "13:00" time (and thus exclude times that would overlap the blocked interval).
+    """
     company = db.query(Company).filter(Company.id == 1).first()
     mon_str = "2026-06-01"
 
@@ -137,6 +150,11 @@ def test_appointment_booking_collision_with_blocks(db, sample_data):
 
 
 def test_recurrence_exception_handling(db, sample_data):
+    """
+    Verifies that adding an exception date to a recurring barber-hours block restores available slots for that date.
+    
+    Creates a recurring blocked interval (13:00–14:00) that applies every day, confirms that the 13:00 slot is initially excluded on 2026-06-01, updates the barber-hours record to add 2026-06-01 as an exception, and confirms that the 13:00 slot is available on that date afterward.
+    """
     company = db.query(Company).filter(Company.id == 1).first()
     mon_str = "2026-06-01"
     mon_date = date(2026, 6, 1)

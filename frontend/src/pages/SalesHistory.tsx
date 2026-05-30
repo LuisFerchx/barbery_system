@@ -15,6 +15,15 @@ const PAYMENT_LABELS: Record<string, string> = {
   transfer: 'Transferencia',
 }
 
+/**
+ * Render the Sales History page with filtering, listing, detail view, and edit capabilities.
+ *
+ * The component displays a paginated table of sales with month and barber filters, actions to view details,
+ * edit, or delete a sale, and modals for sale details and editing. It fetches barber options on mount and
+ * reloads the sales list when page, month, or barber filter change.
+ *
+ * @returns The sales history page as a JSX element
+ */
 export default function SalesHistory() {
   const navigate = useNavigate()
   const [data, setData] = useState<SaleListOut>({ items: [], total: 0, page: 1, page_size: 20, pages: 1 })
@@ -251,6 +260,18 @@ export default function SalesHistory() {
   )
 }
 
+/**
+ * Modal form for editing an existing sale.
+ *
+ * Renders a modal that lets the user change payment method, mark the client as returning,
+ * toggle and select a courtesy drink, edit notes, and submit updates to the sale.
+ *
+ * @param sale - The sale to edit; fields from this object initialize the form.
+ * @param open - Whether the modal is currently open.
+ * @param onClose - Callback invoked to close the modal without saving.
+ * @param onSaved - Callback invoked after a successful save to allow the parent to refresh state.
+ * @returns The modal element containing the edit form for the provided sale.
+ */
 function EditSaleModal({ sale, open, onClose, onSaved }: {
   sale: Sale
   open: boolean

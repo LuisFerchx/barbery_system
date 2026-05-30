@@ -60,6 +60,21 @@ def get_available_slots(
     date_str: str,
     service_id: int,
 ) -> List[SlotOut]:
+    """
+    Compute the list of available booking slots for a given barber on a specific date.
+    
+    Validates the shop's open/close hours, the requested date (expects "YYYY-MM-DD"), the shop's operating days, and that the requested service is active. Generates candidate slots between the shop's open and close times (using UTC) at 15-minute increments; each slot's length is the service duration (or the module default). Excludes slots that overlap existing active appointments or barber blocked intervals for that date.
+    
+    Parameters:
+        db (Session): Database session (passed through).
+        company (Company): Company record providing hours and operating days.
+        barber_id (int): Identifier of the barber to check.
+        date_str (str): Date string in "YYYY-MM-DD" format to check.
+        service_id (int): Identifier of the service to determine slot duration.
+    
+    Returns:
+        List[SlotOut]: Available slots as SlotOut objects; each contains a `time` (HH:MM) and `datetime` (ISO 8601, UTC). An empty list is returned for invalid inputs or when no slots are available.
+    """
     if not company.open_hour or not company.close_hour:
         return []
 

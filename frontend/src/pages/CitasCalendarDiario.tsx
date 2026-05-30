@@ -55,13 +55,19 @@ const localizer = dateFnsLocalizer({
 
 /**
  * Format a Date as an ISO date string in the `yyyy-MM-dd` format using local time.
+ *
+ * @param d - The Date to format
+ * @returns The formatted date string in `yyyy-MM-dd`
  */
 function isoDate(d: Date) {
   return format(d, 'yyyy-MM-dd')
 }
 
 /**
- * Format an ISO date/time string into an `HH:mm` time using UTC hours and minutes.
+ * Format an ISO date/time string as `HH:mm` using the value's UTC hour and minute.
+ *
+ * @param iso - An ISO 8601 date/time string
+ * @returns The UTC time formatted as `HH:mm`
  */
 function fmtTime(iso: string) {
   const d = new Date(iso)
@@ -69,7 +75,10 @@ function fmtTime(iso: string) {
 }
 
 /**
- * Custom Resource Header component showing barber avatar and name.
+ * Render a calendar resource header showing a barber's avatar (photo or initial) and name.
+ *
+ * @param resource - The calendar resource representing a Barber; expected to include `name`, `lastname`, and optional `photo_url`
+ * @returns A JSX element containing the barber avatar and display name for use as a resource header
  */
 function ResourceHeader({ resource }: { resource: any }) {
   const barber = resource as Barber
@@ -95,7 +104,12 @@ function ResourceHeader({ resource }: { resource: any }) {
 }
 
 /**
- * Custom Event component rendering styled cards with left status borders and translucent backgrounds.
+ * Renders a calendar event card with status-specific left border and translucent background.
+ *
+ * Displays start–end time, client name (or "(Sin cliente)"), service name, and optional notes.
+ *
+ * @param event - Calendar event object; expected to contain an `appointment` with scheduling, client, service, and notes fields.
+ * @returns The JSX element representing the styled event card
  */
 function EventComponent({ event }: { event: any }) {
   const a = event.appointment as Appointment
@@ -139,6 +153,14 @@ function EventComponent({ event }: { event: any }) {
   )
 }
 
+/**
+ * Render the day-view appointments calendar for barbers with header controls and modal actions.
+ *
+ * Loads and displays appointments and active barbers for the selected day, provides previous/next/today navigation,
+ * transforms appointments into calendar events, and opens the CitaModal for creating, viewing, or rescheduling appointments.
+ *
+ * @returns The React element containing header controls, the day calendar grid (or empty-state when no barbers), and the appointment modal.
+ */
 export default function CitasCalendarDiario() {
   const [currentDate, setCurrentDate] = useState(new Date())
   const [appointments, setAppointments] = useState<Appointment[]>([])

@@ -24,6 +24,11 @@ const WEEKDAYS_SHORT = [
 // ────────── Users ──────────
 const EMPTY_USER = { username: '', full_name: '', email: '', role: 'barber', password: '' }
 
+/**
+ * Renders the Users administration tab with a table of users, inline row actions, and a modal for creating users.
+ *
+ * @returns The Users administration UI containing a users table with toggle/delete actions and a "Nuevo Usuario" creation modal.
+ */
 function UsersTab() {
   const [users, setUsers] = useState<User[]>([])
   const [showModal, setShowModal] = useState(false)
@@ -148,6 +153,16 @@ interface BarberHoursModalProps {
   barber: Barber
 }
 
+/**
+ * Modal for creating, editing and managing a barber's blocking schedule.
+ *
+ * Loads the barber's existing blocking rules when opened and allows creating or updating recurring blocks, deleting blocks, and creating date-specific exceptions.
+ *
+ * @param open - Whether the modal is visible
+ * @param onClose - Callback invoked to close the modal
+ * @param barber - Barber whose blocking schedule is being managed
+ * @returns The modal dialog JSX for managing a barber's blocking hours
+ */
 function BarberHoursModal({ open, onClose, barber }: BarberHoursModalProps) {
   const [hoursList, setHoursList] = useState<BarberHours[]>([])
   const [loading, setLoading] = useState(false)
@@ -596,6 +611,12 @@ function BarberHoursModal({ open, onClose, barber }: BarberHoursModalProps) {
 // ────────── Barbers ──────────
 const EMPTY_BARBER = { name: '', lastname: '', dialCode: '+57', phone: '', commission_rate: '40' }
 
+/**
+ * Renders the "Barbers" administration tab, including the barbers list, create/edit modal,
+ * photo upload, active-state toggle, and access to the barber hours (blockings) modal.
+ *
+ * @returns The rendered Barbers tab element ready for inclusion in the Admin page.
+ */
 function BarbersTab() {
   const [barbers, setBarbers] = useState<Barber[]>([])
   const [showModal, setShowModal] = useState(false)

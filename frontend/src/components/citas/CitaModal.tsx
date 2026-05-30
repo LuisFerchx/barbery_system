@@ -43,23 +43,20 @@ const STATUS_COLORS: Record<string, string> = {
 
 
 /**
- * Render a modal for creating, viewing, and rescheduling appointments.
+ * Render the appointment modal for creating, viewing, or rescheduling an appointment.
  *
- * The component manages local state for selectable barbers, clients, and services,
- * provides form controls for creating or rescheduling an appointment, displays
- * appointment details in view mode, and performs create/reschedule/status/cancel
- * actions via the appointments API. It also exposes a Google Calendar link for a shown appointment.
+ * Supports three modes ("create" | "view" | "reschedule"), loads barber/client/service catalogs and available booking slots, and performs create, reschedule, status update, and cancel actions via the appointments API.
  *
  * @param open - Whether the modal is visible
  * @param onClose - Callback to close the modal
- * @param mode - One of `'create' | 'view' | 'reschedule'` to select the modal behavior
+ * @param mode - One of `'create' | 'view' | 'reschedule'` that selects the modal behavior
  * @param appointment - Appointment to display or reschedule (required for `view` and `reschedule` modes)
- * @param defaultDate - Optional initial date for create/reschedule forms in `YYYY-MM-DD` format
- * @param defaultTime - Optional initial time for create/reschedule forms in `HH:MM` format
- * @param defaultBarberId - Optional initial barber ID for creation
+ * @param defaultDate - Optional initial date for forms in `YYYY-MM-DD` format
+ * @param defaultTime - Optional initial time for forms in `HH:MM` format
+ * @param defaultBarberId - Optional initial barber ID used when opening in `create` mode
  * @param onSaved - Callback invoked after a successful create, reschedule, status change, or cancellation
- * @param onReschedule - Optional callback invoked when the user requests to reschedule from view mode
- * @returns The modal's JSX element rendering the appointment UI for the selected mode
+ * @param onReschedule - Optional callback invoked when reschedule is requested from view mode
+ * @returns The modal's rendered JSX element for the selected mode
  */
 export default function CitaModal({ open, onClose, mode, appointment, defaultDate, defaultTime, defaultBarberId, onSaved, onReschedule }: Props) {
   const [barbers, setBarbers] = useState<Barber[]>([])
