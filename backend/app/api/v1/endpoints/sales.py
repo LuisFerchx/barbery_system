@@ -5,7 +5,7 @@ from datetime import datetime
 from math import ceil
 from ....database import get_db
 from ....crud import sale as crud
-from ....schemas.sale import SaleCreate, SaleOut, SaleListOut
+from ....schemas.sale import SaleCreate, SaleUpdate, SaleOut, SaleListOut
 from ....security import get_current_user, get_company_id
 
 router = APIRouter()
@@ -70,6 +70,23 @@ def get_sale(
     company_id: int = Depends(get_company_id),
 ):
     sale = crud.get_sale(db, company_id, sale_id)
+    if not sale:
+        raise HTTPException(404, "Venta no encontrada")
+    return SaleOut(**_enrich(sale))
+
+
+@router.put("/{sale_id}", response_model=SaleOut)
+def update_sale(
+    sale_id: int,
+    data: SaleUpdate,
+    db: Session = Depends(get_db),
+    _=Depends(get_current_user),
+    company_id: int = Depends(get_company_id),
+):
+    try:
+        sale = crud.update_sale(db, company_id, sale_id, data)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
     if not sale:
         raise HTTPException(404, "Venta no encontrada")
     return SaleOut(**_enrich(sale))

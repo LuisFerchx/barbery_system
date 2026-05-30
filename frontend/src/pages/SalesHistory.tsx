@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Plus, Trash2, Eye, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Plus, Trash2, Eye, Pencil, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import { salesApi, barbersApi } from '../services/api'
+import { salesApi, barbersApi, inventoryApi } from '../services/api'
 import Table from '../components/ui/Table'
 import Modal from '../components/ui/Modal'
 import { fmt } from '../utils/format'
-import type { Sale, Barber, SaleListOut } from '../types'
+import type { Sale, Barber, SaleListOut, InventoryItem } from '../types'
 import toast from 'react-hot-toast'
 
 const PAYMENT_LABELS: Record<string, string> = {
@@ -26,6 +26,7 @@ export default function SalesHistory() {
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
   })
   const [detail, setDetail] = useState<Sale | null>(null)
+  const [editingSale, setEditingSale] = useState<Sale | null>(null)
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
@@ -121,6 +122,9 @@ export default function SalesHistory() {
           <div className="flex gap-1">
             <button onClick={e => { e.stopPropagation(); setDetail(row as Sale) }} className="btn-icon" title="Ver detalle">
               <Eye size={14} />
+            </button>
+            <button onClick={e => { e.stopPropagation(); setEditingSale(row as Sale) }} className="btn-icon text-blue-400" title="Editar">
+              <Pencil size={14} />
             </button>
             <button onClick={e => { e.stopPropagation(); handleDelete((row as Sale).id) }} className="btn-icon text-red-400" title="Eliminar">
               <Trash2 size={14} />
@@ -230,6 +234,155 @@ export default function SalesHistory() {
           </div>
         )}
       </Modal>
+
+      {/* Edit Sale Modal */}
+      {editingSale && (
+        <EditSaleModal
+          sale={editingSale}
+          open={!!editingSale}
+          onClose={() => setEditingSale(null)}
+          onSaved={() => {
+            setEditingSale(null)
+            load()
+          }}
+        />
+      )}
     </div>
+  )
+}
+
+function EditSaleModal({ sale, open, onClose, onSaved }: {
+  sale: Sale
+  open: boolean
+  onClose: () => void
+  onSaved: () => void
+}) {
+  const [paymentMethod, setPaymentMethod] = useState(sale.payment_method)
+  const [isReturning, setIsReturning] = useState(sale.is_returning_client)
+  const [courtesyGiven, setCourtesyGiven] = useState(sale.courtesy_drink_given)
+  const [courtesyItemId, setCourtesyItemId] = useState(String(sale.courtesy_drink_item_id || ''))
+  const [notes, setNotes] = useState(sale.notes || '')
+  const [drinks, setDrinks] = useState<InventoryItem[]>([])
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    inventoryApi.list('courtesy').then(r => {
+      setDrinks(r.data.filter((d: InventoryItem) => d.is_active))
+    }).catch(() => {})
+  }, [])
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (courtesyGiven && !courtesyItemId) {
+      toast.error('Selecciona la bebida de cortesía')
+      return
+    }
+
+    setSaving(true)
+    try {
+      await salesApi.update(sale.id, {
+        payment_method: paymentMethod,
+        is_returning_client: isReturning,
+        courtesy_drink_given: courtesyGiven,
+        courtesy_drink_item_id: courtesyGiven ? parseInt(courtesyItemId) : null,
+        notes: notes || null,
+      })
+      toast.success('Venta actualizada')
+      onSaved()
+    } catch {
+      toast.error('Error al actualizar la venta')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <Modal open={open} onClose={onClose} title={`Editar Venta ${sale.number}`} size="md">
+      <form onSubmit={handleSubmit} className="space-y-4 text-sm">
+        <div>
+          <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--text-muted)' }}>
+            Método de pago
+          </label>
+          <select
+            value={paymentMethod}
+            onChange={e => setPaymentMethod(e.target.value as 'cash' | 'card_debit' | 'card_credit' | 'transfer')}
+            className="input w-full"
+          >
+            <option value="cash">Efectivo</option>
+            <option value="card_debit">Tarjeta Débito</option>
+            <option value="card_credit">Tarjeta Crédito</option>
+            <option value="transfer">Transferencia</option>
+          </select>
+        </div>
+
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={isReturning}
+            onChange={e => setIsReturning(e.target.checked)}
+            className="rounded"
+          />
+          <span style={{ color: 'var(--text-primary)' }}>Cliente recurrente</span>
+        </label>
+
+        <div className="space-y-3 pt-2">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={courtesyGiven}
+              onChange={e => {
+                setCourtesyGiven(e.target.checked)
+                if (!e.target.checked) setCourtesyItemId('')
+              }}
+              className="rounded"
+            />
+            <span style={{ color: 'var(--text-primary)' }}>Se ofreció bebida de cortesía</span>
+          </label>
+
+          {courtesyGiven && (
+            <div className="ml-6">
+              <label className="block text-xs mb-1" style={{ color: 'var(--text-muted)' }}>
+                Bebida seleccionada *
+              </label>
+              <select
+                value={courtesyItemId}
+                onChange={e => setCourtesyItemId(e.target.value)}
+                className="input w-full"
+              >
+                <option value="">Seleccionar bebida...</option>
+                {drinks.map(d => (
+                  <option key={d.id} value={d.id} disabled={d.stock_current <= 0 && d.id !== sale.courtesy_drink_item_id}>
+                    {d.name} — stock: {d.stock_current} {d.unit}
+                    {d.stock_current <= 0 && d.id !== sale.courtesy_drink_item_id ? ' (sin stock)' : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
+
+        <div>
+          <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--text-muted)' }}>
+            Notas
+          </label>
+          <textarea
+            value={notes}
+            onChange={e => setNotes(e.target.value)}
+            rows={2}
+            placeholder="Observaciones..."
+            className="input w-full resize-none"
+          />
+        </div>
+
+        <div className="flex gap-3 pt-2">
+          <button type="button" onClick={onClose} className="btn-secondary flex-1" disabled={saving}>
+            Cancelar
+          </button>
+          <button type="submit" className="btn-primary flex-1" disabled={saving}>
+            {saving ? 'Guardando...' : 'Guardar Cambios'}
+          </button>
+        </div>
+      </form>
+    </Modal>
   )
 }

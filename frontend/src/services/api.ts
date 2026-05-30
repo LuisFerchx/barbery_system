@@ -50,6 +50,7 @@ export const salesApi = {
   list: (params?: Record<string, unknown>) => api.get('/sales/', { params }),
   get: (id: number) => api.get(`/sales/${id}`),
   create: (data: unknown) => api.post('/sales/', data),
+  update: (id: number, data: unknown) => api.put(`/sales/${id}`, data),
   delete: (id: number) => api.delete(`/sales/${id}`),
 }
 

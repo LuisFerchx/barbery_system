@@ -3,7 +3,7 @@ import { Clock, User, Scissors, Calendar, RefreshCw, XCircle, CheckCircle, Alert
 import QRCode from 'react-qr-code'
 import toast from 'react-hot-toast'
 import Modal from '../ui/Modal'
-import { appointmentsApi, barbersApi, clientsApi, catalogApi, companiesApi } from '../../services/api'
+import { appointmentsApi, barbersApi, clientsApi, catalogApi, companiesApi, salesApi } from '../../services/api'
 import { bookingApi } from '../../services/publicApi'
 import { fmt } from '../../utils/format'
 import type { Appointment, Barber, Client, ServiceCatalog, Company } from '../../types'
@@ -106,8 +106,8 @@ export default function CitaModal({ open, onClose, mode, appointment, defaultDat
   }, [])
 
   useEffect(() => {
-    if (open && (mode === 'create' || mode === 'reschedule')) loadCatalog()
-  }, [open, mode, loadCatalog])
+    if (open) loadCatalog()
+  }, [open, loadCatalog])
 
   useEffect(() => {
     if (open && mode === 'create') {
@@ -227,12 +227,38 @@ export default function CitaModal({ open, onClose, mode, appointment, defaultDat
     if (!appointment) return
     setLoading(true)
     try {
+      if (status === 'confirmed') {
+        const selectedService = services.find(s => s.id === appointment.service_id)
+        if (!selectedService) {
+          toast.error('No se encontró el servicio en el catálogo para registrar la venta')
+          setLoading(false)
+          return
+        }
+
+        await salesApi.create({
+          date: appointment.scheduled_at,
+          client_id: appointment.client_id || null,
+          barber_id: appointment.barber_id,
+          service_id: appointment.service_id,
+          gross_total: Number(selectedService.price),
+          payment_method: 'cash',
+          is_returning_client: false,
+          courtesy_drink_given: false,
+          courtesy_drink_item_id: null,
+          cross_sell: false,
+          notes: appointment.notes || 'Creado automáticamente al confirmar cita',
+        })
+
+        toast.success('¡Venta registrada con éxito!')
+      }
+
       await appointmentsApi.update(appointment.id, { status })
       toast.success('Estado actualizado')
       onSaved()
       onClose()
-    } catch {
-      toast.error('Error al actualizar')
+    } catch (e: unknown) {
+      const msg = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail
+      toast.error(msg || 'Error al actualizar el estado y registrar la venta')
     } finally {
       setLoading(false)
     }

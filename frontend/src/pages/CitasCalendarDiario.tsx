@@ -278,17 +278,38 @@ export default function CitasCalendarDiario() {
           border-left: 1px solid var(--surface-border) !important;
         }
 
-        .rbc-time-gutter {
+        .rbc-time-gutter,
+        .rbc-time-header-gutter {
+          width: 48px !important;
+          min-width: 48px !important;
           border-right: 1px solid var(--surface-border) !important;
+        }
+
+        .rbc-time-gutter {
           background-color: var(--surface-1) !important;
         }
 
         .rbc-time-gutter .rbc-time-column {
           color: var(--text-secondary) !important;
-          font-size: 11px !important;
+          font-size: 10px !important;
           font-weight: 500 !important;
           text-align: right !important;
-          padding-right: 12px !important;
+          padding-right: 6px !important;
+        }
+
+        @media (max-width: 640px) {
+          .rbc-time-gutter,
+          .rbc-time-header-gutter {
+            width: 38px !important;
+            min-width: 38px !important;
+          }
+          .rbc-time-gutter .rbc-time-column {
+            font-size: 9px !important;
+            padding-right: 4px !important;
+          }
+          .rbc-label {
+            font-size: 9px !important;
+          }
         }
 
         .rbc-timeslot-group {
@@ -340,11 +361,11 @@ export default function CitasCalendarDiario() {
         .rbc-time-header-gutter {
           border-bottom: none !important;
           background-color: var(--surface-1) !important;
-          border-right: 1px solid var(--surface-border) !important;
         }
 
         .rbc-label {
           color: var(--text-secondary) !important;
+          font-size: 10px !important;
         }
       `}</style>
 
