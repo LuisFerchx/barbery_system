@@ -213,7 +213,7 @@ def book_appointment_atomic(
         notes=data.notes,
     )
     db.add(appt)
-    db.commit()
+    db.flush()
     db.refresh(appt)
 
     if initial_status == "confirmed":
@@ -227,7 +227,9 @@ def book_appointment_atomic(
             gross_total=service.price,
             payment_method='cash',
             notes='Creado automáticamente desde cita agendada',
-        ))
+        ), auto_commit=False)
+
+    db.commit()
 
     client_name = f"{client.name} {client.lastname}"
     barber_name = f"{barber.name} {barber.lastname}"

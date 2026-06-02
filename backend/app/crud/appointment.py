@@ -341,7 +341,7 @@ def create_appointment(db: Session, company_id: int, data: AppointmentCreate) ->
         notes=data.notes,
     )
     db.add(appt)
-    db.commit()
+    db.flush()
     db.refresh(appt)
 
     if initial_status == "confirmed":
@@ -355,7 +355,9 @@ def create_appointment(db: Session, company_id: int, data: AppointmentCreate) ->
             gross_total=service.price,
             payment_method='cash',
             notes='Creado automáticamente desde cita agendada',
-        ))
+        ), auto_commit=False)
+
+    db.commit()
 
     return _load_with_relations(
         db.query(Appointment).filter(Appointment.id == appt.id)
@@ -399,9 +401,18 @@ def reschedule_appointment(
         new_barber = db.query(Barber).filter(
             Barber.id == data.barber_id,
             Barber.company_id == company_id,
+            Barber.is_active == True,
         ).first()
         if not new_barber:
-            raise ValueError("El barbero seleccionado no existe o no pertenece a esta compañía")
+            raise ValueError("Barbero no encontrado o inactivo")
+
+        # Check service compatibility
+        service = db.query(ServiceCatalog).filter(ServiceCatalog.id == appt.service_id).first()
+        if service and service.service_type_id:
+            barber_service_type_ids = {st.id for st in new_barber.service_types}
+            if service.service_type_id not in barber_service_type_ids:
+                raise ValueError("El barbero seleccionado no puede realizar este tipo de servicio")
+
         effective_barber_id = data.barber_id
 
     company = db.query(Company).filter(Company.id == company_id).first()
@@ -413,6 +424,14 @@ def reschedule_appointment(
     appt.end_at = end_at
     appt.status = "pending"
     appt.barber_id = effective_barber_id
+
+    # Update linked sale if it exists
+    from ..models.sale import Sale
+    linked_sale = db.query(Sale).filter(Sale.appointment_id == appointment_id).first()
+    if linked_sale:
+        linked_sale.date = scheduled_at
+        linked_sale.barber_id = effective_barber_id
+
     db.commit()
     db.refresh(appt)
     return _load_with_relations(
@@ -455,12 +474,12 @@ def update_appointment(
 
 def cancel_appointment(db: Session, company_id: int, appointment_id: int) -> Optional[Appointment]:
     """
-    Cancel an appointment by setting its status to "cancelled".
-    
+    Cancel an appointment by setting its status to "cancelled" and delete any linked sale.
+
     Parameters:
         company_id (int): ID of the company that owns the appointment.
         appointment_id (int): ID of the appointment to cancel.
-    
+
     Returns:
         Appointment or None: The updated appointment with status "cancelled", or `None` if no matching appointment was found.
     """
@@ -471,6 +490,16 @@ def cancel_appointment(db: Session, company_id: int, appointment_id: int) -> Opt
     if not appt:
         return None
     appt.status = "cancelled"
+
+    # Delete linked sale if it exists
+    from ..models.sale import Sale
+    linked_sale = db.query(Sale).filter(
+        Sale.appointment_id == appointment_id,
+        Sale.company_id == company_id,
+    ).first()
+    if linked_sale:
+        db.delete(linked_sale)
+
     db.commit()
     db.refresh(appt)
     return appt

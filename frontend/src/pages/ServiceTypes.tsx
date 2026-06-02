@@ -20,6 +20,7 @@ export default function ServiceTypes() {
   const [editing, setEditing] = useState<ServiceType | null>(null)
   const [form, setForm] = useState<Form>(EMPTY)
   const [saving, setSaving] = useState(false)
+  const [togglingIds, setTogglingIds] = useState<Set<number>>(new Set())
 
   const load = useCallback(() => {
     setLoading(true)
@@ -68,12 +69,20 @@ export default function ServiceTypes() {
   }
 
   const handleToggle = async (st: ServiceType) => {
+    if (togglingIds.has(st.id)) return
+    setTogglingIds(prev => new Set(prev).add(st.id))
     try {
       await serviceTypesApi.update(st.id, { is_active: !st.is_active })
       toast.success(st.is_active ? 'Tipo desactivado' : 'Tipo activado')
       load()
     } catch {
       toast.error('Error al actualizar')
+    } finally {
+      setTogglingIds(prev => {
+        const next = new Set(prev)
+        next.delete(st.id)
+        return next
+      })
     }
   }
 
@@ -135,6 +144,7 @@ export default function ServiceTypes() {
         emptyText="No hay tipos de servicio. Crea uno para organizar tu catálogo."
         actions={row => {
           const st = row as ServiceType
+          const isToggling = togglingIds.has(st.id)
           return (
             <div className="flex gap-1">
               <button onClick={() => openEdit(st)} className="btn-icon" title="Editar">
@@ -144,7 +154,8 @@ export default function ServiceTypes() {
                 onClick={() => handleToggle(st)}
                 className="btn-icon"
                 title={st.is_active ? 'Desactivar' : 'Activar'}
-                style={{ color: st.is_active ? '#f87171' : '#4ade80' }}
+                style={{ color: st.is_active ? '#f87171' : '#4ade80', opacity: isToggling ? 0.5 : 1 }}
+                disabled={isToggling}
               >
                 {st.is_active ? <ToggleRight size={14} /> : <ToggleLeft size={14} />}
               </button>

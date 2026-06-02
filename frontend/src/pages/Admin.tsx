@@ -683,15 +683,38 @@ function BarbersTab() {
       } else {
         const res = await barbersApi.create(payload)
         const newBarber = res.data as Barber
+        let photoUploaded = false
+        let serviceTypesUpdated = false
+
         if (photoFile) {
-          const fd = new FormData()
-          fd.append('file', photoFile)
-          await barbersApi.uploadPhoto(newBarber.id, fd)
+          try {
+            const fd = new FormData()
+            fd.append('file', photoFile)
+            await barbersApi.uploadPhoto(newBarber.id, fd)
+            photoUploaded = true
+          } catch {
+            toast.error('Error al subir foto')
+          }
         }
+
         if (selectedServiceTypeIds.length > 0) {
-          await barbersApi.updateServiceTypes(newBarber.id, { service_type_ids: selectedServiceTypeIds })
+          try {
+            await barbersApi.updateServiceTypes(newBarber.id, { service_type_ids: selectedServiceTypeIds })
+            serviceTypesUpdated = true
+          } catch {
+            toast.error('Error al actualizar tipos de servicio')
+          }
         }
-        toast.success('Barbero creado')
+
+        if (!photoFile || photoUploaded) {
+          if (!selectedServiceTypeIds.length || serviceTypesUpdated) {
+            toast.success('Barbero creado')
+          } else {
+            toast.success('Barbero creado (algunos datos no se guardaron)')
+          }
+        } else {
+          toast.success('Barbero creado (algunos datos no se guardaron)')
+        }
       }
       setShowModal(false); load()
     } catch { toast.error('Error al guardar') }
