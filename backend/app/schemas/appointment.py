@@ -13,6 +13,7 @@ class AppointmentCreate(BaseModel):
 
 class AppointmentReschedule(BaseModel):
     scheduled_at: datetime
+    barber_id: Optional[int] = None
 
 
 class AppointmentUpdate(BaseModel):

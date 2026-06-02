@@ -66,12 +66,21 @@ export const barbersApi = {
   get: (id: number) => api.get(`/barbers/${id}`),
   create: (data: unknown) => api.post('/barbers/', data),
   update: (id: number, data: unknown) => api.put(`/barbers/${id}`, data),
+  updateServiceTypes: (id: number, data: { service_type_ids: number[] }) =>
+    api.put(`/barbers/${id}/service-types/`, data),
   uploadPhoto: (id: number, form: FormData) =>
     api.post(`/barbers/${id}/photo`, form, { headers: { 'Content-Type': 'multipart/form-data' } }),
   getHours: (barberId: number) => api.get(`/barbers/${barberId}/hours/`),
   createHours: (barberId: number, data: unknown) => api.post(`/barbers/${barberId}/hours/`, data),
   updateHours: (hoursId: number, data: unknown) => api.put(`/barbers/hours/${hoursId}/`, data),
   deleteHours: (hoursId: number) => api.delete(`/barbers/hours/${hoursId}/`),
+}
+
+export const serviceTypesApi = {
+  list: (params?: Record<string, unknown>) => api.get('/service-types/', { params }),
+  create: (data: unknown) => api.post('/service-types/', data),
+  update: (id: number, data: unknown) => api.put(`/service-types/${id}/`, data),
+  delete: (id: number) => api.delete(`/service-types/${id}/`),
 }
 
 export const clientsApi = {

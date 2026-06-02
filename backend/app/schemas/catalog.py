@@ -1,11 +1,13 @@
 from pydantic import BaseModel
 from typing import Optional
 from decimal import Decimal
+from .service_type import ServiceTypeOut
 
 
 class ServiceCreate(BaseModel):
     name: str
     category: str  # haircut, beard, combo, other
+    service_type_id: Optional[int] = None
     price: Decimal
     commission_rate: Optional[Decimal] = None
     duration: Optional[int] = None
@@ -14,6 +16,7 @@ class ServiceCreate(BaseModel):
 class ServiceUpdate(BaseModel):
     name: Optional[str] = None
     category: Optional[str] = None
+    service_type_id: Optional[int] = None
     price: Optional[Decimal] = None
     is_active: Optional[bool] = None
     commission_rate: Optional[Decimal] = None
@@ -24,6 +27,8 @@ class ServiceOut(BaseModel):
     id: int
     name: str
     category: str
+    service_type_id: Optional[int] = None
+    service_type: Optional[ServiceTypeOut] = None
     price: Decimal
     commission_rate: Optional[Decimal] = None
     duration: Optional[int] = None

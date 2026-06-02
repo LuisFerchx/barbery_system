@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Clock, User, Scissors, Calendar, RefreshCw, XCircle, CheckCircle, AlertCircle, CalendarPlus, Share2, Copy, Check, X } from 'lucide-react'
 import QRCode from 'react-qr-code'
 import toast from 'react-hot-toast'
@@ -67,6 +67,7 @@ export default function CitaModal({ open, onClose, mode, appointment, defaultDat
   const [loadingSlots, setLoadingSlots] = useState(false)
 
   const [barberId, setBarberId] = useState('')
+  const [rescheduleBarberIdState, setRescheduleBarberIdState] = useState('')
   const [serviceId, setServiceId] = useState('')
   const [clientId, setClientId] = useState('')
   const [date, setDate] = useState(defaultDate || new Date().toISOString().slice(0, 10))
@@ -74,6 +75,14 @@ export default function CitaModal({ open, onClose, mode, appointment, defaultDat
   const [notes, setNotes] = useState('')
   const [loading, setLoading] = useState(false)
   const [showShare, setShowShare] = useState(false)
+
+  const filteredServices = useMemo(() => {
+    if (!barberId) return services
+    const barber = barbers.find(b => String(b.id) === barberId)
+    if (!barber || barber.service_types.length === 0) return services
+    const typeIds = new Set(barber.service_types.map(st => st.id))
+    return services.filter(s => s.service_type_id == null || typeIds.has(s.service_type_id))
+  }, [services, barbers, barberId])
 
   const selectedService = services.find(s => String(s.id) === serviceId)
   const duration = selectedService?.duration ?? 30
@@ -119,11 +128,20 @@ export default function CitaModal({ open, onClose, mode, appointment, defaultDat
       const dt = new Date(appointment.scheduled_at)
       setDate(dt.toISOString().slice(0, 10))
       setTime(`${String(dt.getUTCHours()).padStart(2, '0')}:${String(dt.getUTCMinutes()).padStart(2, '0')}`)
+      setRescheduleBarberIdState(String(appointment.barber_id))
     }
   }, [open, mode, appointment, defaultDate, defaultTime, defaultBarberId])
 
   useEffect(() => {
-    const activeBarberId = mode === 'reschedule' ? appointment?.barber_id : Number(barberId)
+    if (mode === 'create' && serviceId && !filteredServices.some(s => String(s.id) === serviceId)) {
+      setServiceId('')
+    }
+  }, [filteredServices, mode, serviceId])
+
+  useEffect(() => {
+    const activeBarberId = mode === 'reschedule'
+      ? (rescheduleBarberIdState ? Number(rescheduleBarberIdState) : appointment?.barber_id)
+      : Number(barberId)
     const activeServiceId = mode === 'reschedule' ? appointment?.service_id : Number(serviceId)
     const slug = company?.slug
 
@@ -145,7 +163,7 @@ export default function CitaModal({ open, onClose, mode, appointment, defaultDat
       .finally(() => {
         setLoadingSlots(false)
       })
-  }, [company?.slug, barberId, serviceId, date, mode, appointment])
+  }, [company?.slug, barberId, rescheduleBarberIdState, serviceId, date, mode, appointment])
 
   const displaySlots = (() => {
     if (mode !== 'reschedule' || !appointment) return slots
@@ -154,7 +172,10 @@ export default function CitaModal({ open, onClose, mode, appointment, defaultDat
     const apptDateStr = apptDt.toISOString().slice(0, 10)
     const apptTimeStr = `${String(apptDt.getUTCHours()).padStart(2, '0')}:${String(apptDt.getUTCMinutes()).padStart(2, '0')}`
 
-    if (date === apptDateStr && !slots.some(s => s.time === apptTimeStr)) {
+    const barberUnchanged = !rescheduleBarberIdState ||
+      Number(rescheduleBarberIdState) === appointment.barber_id
+
+    if (barberUnchanged && date === apptDateStr && !slots.some(s => s.time === apptTimeStr)) {
       const newSlot: SlotPublic = {
         time: apptTimeStr,
         datetime: appointment.scheduled_at
@@ -185,14 +206,15 @@ export default function CitaModal({ open, onClose, mode, appointment, defaultDat
     setLoading(true)
     try {
       const scheduled_at = `${date}T${time}:00+00:00`
-      await appointmentsApi.create({
+      const result = await appointmentsApi.create({
         barber_id: Number(barberId),
         service_id: Number(serviceId),
         client_id: clientId ? Number(clientId) : null,
         scheduled_at,
         notes: notes || null,
       })
-      toast.success('Cita creada')
+      const created = result.data as Appointment
+      toast.success(created.status === 'confirmed' ? 'Cita creada y confirmada' : 'Cita creada')
       onSaved()
       onClose()
     } catch (e: unknown) {
@@ -208,7 +230,11 @@ export default function CitaModal({ open, onClose, mode, appointment, defaultDat
     setLoading(true)
     try {
       const scheduled_at = `${date}T${time}:00+00:00`
-      await appointmentsApi.reschedule(appointment.id, { scheduled_at })
+      const payload: { scheduled_at: string; barber_id?: number } = { scheduled_at }
+      if (rescheduleBarberIdState && Number(rescheduleBarberIdState) !== appointment.barber_id) {
+        payload.barber_id = Number(rescheduleBarberIdState)
+      }
+      await appointmentsApi.reschedule(appointment.id, payload)
       toast.success('Cita reagendada')
       onSaved()
       onClose()
@@ -233,6 +259,7 @@ export default function CitaModal({ open, onClose, mode, appointment, defaultDat
         }
 
         await salesApi.create({
+          appointment_id: appointment.id,
           date: appointment.scheduled_at,
           client_id: appointment.client_id || null,
           barber_id: appointment.barber_id,
@@ -384,7 +411,7 @@ export default function CitaModal({ open, onClose, mode, appointment, defaultDat
               <label className="label">Servicio *</label>
               <select className="input w-full" value={serviceId} onChange={e => setServiceId(e.target.value)}>
                 <option value="">Seleccionar servicio</option>
-                {services.map(s => (
+                {filteredServices.map(s => (
                   <option key={s.id} value={s.id}>{s.name} ({s.duration ?? 30} min)</option>
                 ))}
               </select>
@@ -489,11 +516,21 @@ export default function CitaModal({ open, onClose, mode, appointment, defaultDat
       {/* RESCHEDULE mode */}
       {mode === 'reschedule' && appointment && (
         <div className="space-y-3">
+          <div>
+            <label className="label">Barbero *</label>
+            <select
+              className="input w-full"
+              value={rescheduleBarberIdState}
+              onChange={e => setRescheduleBarberIdState(e.target.value)}
+            >
+              {barbers.map(b => (
+                <option key={b.id} value={b.id}>{b.name} {b.lastname}</option>
+              ))}
+            </select>
+          </div>
+
           <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs"
             style={{ background: 'var(--surface-2)', border: '1px solid var(--surface-border)', color: 'var(--text-secondary)' }}>
-            <User size={12} style={{ color: 'var(--text-muted)' }} />
-            <span>{appointment.barber_name}</span>
-            <span style={{ color: 'var(--text-muted)' }}>·</span>
             <Scissors size={12} style={{ color: 'var(--text-muted)' }} />
             <span>{appointment.service_name}</span>
             <span style={{ color: 'var(--text-muted)' }}>·</span>

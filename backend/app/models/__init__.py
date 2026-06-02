@@ -1,5 +1,7 @@
 from .company import Company
 from .user import User
+from .associations import barber_service_types
+from .service_type import ServiceType
 from .barber import Barber
 from .client import Client
 from .catalog import ServiceCatalog, ProductCatalog
@@ -17,6 +19,7 @@ from .barber_hours import BarberHours
 __all__ = [
     "Company",
     "User",
+    "ServiceType",
     "Barber",
     "Client",
     "ServiceCatalog", "ProductCatalog",

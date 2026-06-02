@@ -3,7 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, ClipboardList, Users, Package,
   BarChart2, Receipt, Settings, BookOpen, Shield, Scissors, X, LogOut, ShoppingBag, Building2, Wallet,
-  CalendarDays, List, Calendar, ChevronDown,
+  CalendarDays, List, Calendar, ChevronDown, Tag,
 } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import clsx from 'clsx'
@@ -31,6 +31,7 @@ const ADMIN_NAV = [
   { to: '/company-settings', icon: Building2, label: 'Mi Empresa' },
   { to: '/settings', icon: Settings, label: 'Configuración' },
   { to: '/admin', icon: Shield, label: 'Administración' },
+  { to: '/service-types', icon: Tag, label: 'Tipos de Servicio' },
 ]
 
 interface Props {

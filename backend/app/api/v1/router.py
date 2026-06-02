@@ -7,6 +7,7 @@ from .endpoints import (
     expenses, analytics, dashboard,
     config, manual, companies, cash_register,
     appointments, public_booking,
+    service_types,
 )
 
 api_router = APIRouter()
@@ -28,3 +29,4 @@ api_router.include_router(manual.router, prefix="/manual", tags=["manual"])
 api_router.include_router(cash_register.router, prefix="/cash-register", tags=["cash-register"])
 api_router.include_router(appointments.router, prefix="/appointments", tags=["appointments"])
 api_router.include_router(public_booking.router, prefix="/public", tags=["public-booking"])
+api_router.include_router(service_types.router, prefix="/service-types", tags=["service-types"])

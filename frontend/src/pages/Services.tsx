@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Plus, Pencil, Trash2, ToggleLeft, ToggleRight, Clock } from 'lucide-react'
-import { catalogApi } from '../services/api'
+import { catalogApi, serviceTypesApi } from '../services/api'
 import Modal from '../components/ui/Modal'
 import Table from '../components/ui/Table'
 import { fmt } from '../utils/format'
-import type { ServiceCatalog } from '../types'
+import type { ServiceCatalog, ServiceType } from '../types'
 import toast from 'react-hot-toast'
 
 const CATEGORIES = [
@@ -18,15 +18,17 @@ const CAT_LABEL: Record<string, string> = Object.fromEntries(CATEGORIES.map(c =>
 interface Form {
   name: string
   category: string
+  service_type_id: string
   price: string
   commission_rate: string
   duration: string
 }
 
-const EMPTY: Form = { name: '', category: 'haircut', price: '', commission_rate: '', duration: '' }
+const EMPTY: Form = { name: '', category: 'haircut', service_type_id: '', price: '', commission_rate: '', duration: '' }
 
 export default function Services() {
   const [services, setServices] = useState<ServiceCatalog[]>([])
+  const [serviceTypes, setServiceTypes] = useState<ServiceType[]>([])
   const [loading, setLoading] = useState(false)
   const [showModal, setShowModal] = useState(false)
   const [editing, setEditing] = useState<ServiceCatalog | null>(null)
@@ -35,8 +37,14 @@ export default function Services() {
 
   const load = useCallback(() => {
     setLoading(true)
-    catalogApi.services()
-      .then(r => setServices(r.data))
+    Promise.all([
+      catalogApi.services(),
+      serviceTypesApi.list({ active_only: true }),
+    ])
+      .then(([svcRes, stRes]) => {
+        setServices(svcRes.data)
+        setServiceTypes(stRes.data)
+      })
       .catch(() => toast.error('Error al cargar servicios'))
       .finally(() => setLoading(false))
   }, [])
@@ -54,6 +62,7 @@ export default function Services() {
     setForm({
       name: s.name,
       category: s.category,
+      service_type_id: s.service_type_id != null ? String(s.service_type_id) : '',
       price: String(s.price),
       commission_rate: s.commission_rate != null ? String(Math.round(Number(s.commission_rate) * 100)) : '',
       duration: s.duration != null ? String(s.duration) : '',
@@ -69,6 +78,7 @@ export default function Services() {
       const payload: Record<string, unknown> = {
         name: form.name.trim(),
         category: form.category,
+        service_type_id: form.service_type_id !== '' ? parseInt(form.service_type_id) : null,
         price: parseFloat(form.price),
         commission_rate: form.commission_rate !== '' ? parseFloat(form.commission_rate) / 100 : null,
         duration: form.duration !== '' ? parseInt(form.duration) : null,
@@ -119,6 +129,15 @@ export default function Services() {
   const columns = [
     { key: 'name', label: 'Servicio', render: (v: string) => (
       <span className="font-medium" style={{ color: 'var(--text-primary)' }}>{v}</span>
+    )},
+    { key: 'service_type', label: 'Tipo', render: (_: unknown, row: ServiceCatalog) => (
+      row.service_type
+        ? <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{
+            background: 'rgba(96,165,250,0.1)',
+            color: '#60a5fa',
+            border: '1px solid rgba(96,165,250,0.2)',
+          }}>{row.service_type.name}</span>
+        : <span style={{ color: 'var(--text-muted)' }}>—</span>
     )},
     { key: 'category', label: 'Categoría', render: (v: string) => (
       <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{
@@ -192,6 +211,13 @@ export default function Services() {
           <div>
             <label className="text-xs block mb-1.5" style={{ color: 'var(--text-muted)' }}>Nombre *</label>
             <input className="input w-full" placeholder="Ej. Corte clásico" {...f('name')} />
+          </div>
+          <div>
+            <label className="text-xs block mb-1.5" style={{ color: 'var(--text-muted)' }}>Tipo de Servicio</label>
+            <select className="input w-full" {...f('service_type_id')}>
+              <option value="">— Sin tipo asignado</option>
+              {serviceTypes.map(st => <option key={st.id} value={st.id}>{st.name}</option>)}
+            </select>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>

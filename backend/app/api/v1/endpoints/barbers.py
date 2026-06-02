@@ -5,7 +5,7 @@ from typing import List
 from ....database import get_db
 from ....crud import barber as crud
 from ....crud import barber_hours as hours_crud
-from ....schemas.barber import BarberCreate, BarberUpdate, BarberOut
+from ....schemas.barber import BarberCreate, BarberUpdate, BarberOut, BarberServiceTypesUpdate
 from ....schemas.barber_hours import BarberHoursCreate, BarberHoursUpdate, BarberHoursOut
 from ....security import get_current_user, require_admin, get_company_id
 from ....utils.supabase import get_supabase, get_bucket, attach_signed_url
@@ -113,6 +113,20 @@ async def upload_barber_photo(
     db.refresh(barber)
     attach_signed_url(barber, "photo_url")
     return barber
+
+
+@router.put("/{barber_id}/service-types/", response_model=BarberOut)
+def update_barber_service_types(
+    barber_id: int,
+    data: BarberServiceTypesUpdate,
+    db: Session = Depends(get_db),
+    _=Depends(require_admin),
+    company_id: int = Depends(get_company_id),
+):
+    obj = crud.update_barber_service_types(db, company_id, barber_id, data.service_type_ids)
+    if not obj:
+        raise HTTPException(404, "Barbero no encontrado")
+    return obj
 
 
 @router.get("/{barber_id}/hours/", response_model=List[BarberHoursOut])

@@ -71,8 +71,16 @@ export default function SalesHistory() {
 
   const columns = [
     {
-      key: 'number', label: 'N°', render: (v: string) => (
-        <span className="font-mono text-xs font-semibold" style={{ color: 'var(--gold-400)' }}>{v}</span>
+      key: 'number', label: 'N°', render: (v: string, row: Sale) => (
+        <div className="flex items-center gap-1.5">
+          <span className="font-mono text-xs font-semibold" style={{ color: 'var(--gold-400)' }}>{v}</span>
+          {row.appointment_id && (
+            <span className="text-xs px-1.5 py-0.5 rounded-md font-medium"
+              style={{ background: 'rgba(96,165,250,0.15)', color: '#60a5fa', border: '1px solid rgba(96,165,250,0.3)' }}>
+              Cita
+            </span>
+          )}
+        </div>
       )
     },
     { key: 'date', label: 'Fecha', render: (v: string) => fmt.datetime(v) },
@@ -186,6 +194,12 @@ export default function SalesHistory() {
                 <p className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>Tipo de cliente</p>
                 <p style={{ color: 'var(--text-primary)' }}>{detail.is_returning_client ? 'Recurrente' : 'Nuevo'}</p>
               </div>
+              {detail.appointment_id && (
+                <div>
+                  <p className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>Origen</p>
+                  <p style={{ color: '#60a5fa' }}>Cita agendada #{detail.appointment_id}</p>
+                </div>
+              )}
             </div>
 
             <div className="rounded-xl p-4 space-y-2" style={{ background: 'rgba(255,255,255,0.04)' }}>

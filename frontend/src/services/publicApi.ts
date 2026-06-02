@@ -19,17 +19,24 @@ export interface ShopInfo {
   is_active: boolean
 }
 
+export interface ServiceTypePublic {
+  id: number
+  name: string
+}
+
 export interface BarberPublic {
   id: number
   name: string
   lastname: string
   photo_url?: string | null
+  service_types: ServiceTypePublic[]
 }
 
 export interface ServicePublic {
   id: number
   name: string
   category: string
+  service_type_id?: number | null
   price: number
   duration?: number | null
 }

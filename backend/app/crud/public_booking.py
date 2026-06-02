@@ -3,7 +3,7 @@ import string
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 
 from ..models.appointment import Appointment
 from ..models.barber import Barber
@@ -23,6 +23,7 @@ from ..schemas.public_booking import (
     BookingOut,
     AppointmentPublicOut,
 )
+from ..schemas.sale import SaleCreate
 
 _CODE_ALPHABET = string.ascii_uppercase + string.digits
 
@@ -38,6 +39,7 @@ def get_shop(db: Session, slug: str) -> Optional[Company]:
 def get_public_barbers(db: Session, company_id: int) -> List[Barber]:
     return (
         db.query(Barber)
+        .options(selectinload(Barber.service_types))
         .filter(Barber.company_id == company_id, Barber.is_active == True)
         .order_by(Barber.name)
         .all()
@@ -198,6 +200,7 @@ def book_appointment_atomic(
     if db.query(Appointment).filter(Appointment.code == code).first():
         code = _generate_code()
 
+    initial_status = "confirmed" if company.auto_confirm_appointments else "pending"
     appt = Appointment(
         company_id=company.id,
         client_id=client.id,
@@ -205,13 +208,28 @@ def book_appointment_atomic(
         service_id=data.service_id,
         scheduled_at=scheduled_at,
         end_at=end_at,
-        status="pending",
+        status=initial_status,
         code=code,
         notes=data.notes,
     )
     db.add(appt)
-    db.commit()
+    db.flush()
     db.refresh(appt)
+
+    if initial_status == "confirmed":
+        from .sale import create_sale
+        create_sale(db, company.id, SaleCreate(
+            appointment_id=appt.id,
+            date=appt.scheduled_at,
+            client_id=appt.client_id,
+            barber_id=appt.barber_id,
+            service_id=appt.service_id,
+            gross_total=service.price,
+            payment_method='cash',
+            notes='Creado automáticamente desde cita agendada',
+        ), auto_commit=False)
+
+    db.commit()
 
     client_name = f"{client.name} {client.lastname}"
     barber_name = f"{barber.name} {barber.lastname}"

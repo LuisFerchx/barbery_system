@@ -23,6 +23,7 @@ import CitasCalendar from './pages/CitasCalendar'
 import CitasCalendarDiario from './pages/CitasCalendarDiario'
 import PublicBooking from './pages/PublicBooking'
 import AppointmentLookup from './pages/AppointmentLookup'
+import ServiceTypes from './pages/ServiceTypes'
 
 /**
  * Guards a route by requiring an authenticated user and renders its children when allowed.
@@ -49,6 +50,14 @@ function SuperadminRoute({ children }: { children: React.ReactNode }) {
   if (loading) return <div className="flex items-center justify-center h-screen text-gray-400">Cargando...</div>
   if (!user) return <Navigate to="/login" replace />
   if (user.role !== 'superadmin') return <Navigate to="/" replace />
+  return <>{children}</>
+}
+
+function AdminRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth()
+  if (loading) return <div className="flex items-center justify-center h-screen text-gray-400">Cargando...</div>
+  if (!user) return <Navigate to="/login" replace />
+  if (user.role !== 'admin' && user.role !== 'superadmin') return <Navigate to="/" replace />
   return <>{children}</>
 }
 
@@ -81,6 +90,7 @@ function AppRoutes() {
         <Route path="citas" element={<CitasList />} />
         <Route path="citas/calendario" element={<CitasCalendar />} />
         <Route path="citas/diario" element={<CitasCalendarDiario />} />
+        <Route path="service-types" element={<AdminRoute><ServiceTypes /></AdminRoute>} />
         <Route path="companies" element={<SuperadminRoute><Companies /></SuperadminRoute>} />
       </Route>
     </Routes>

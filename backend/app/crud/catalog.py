@@ -1,17 +1,17 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 from ..models.catalog import ServiceCatalog, ProductCatalog
 from ..schemas.catalog import ServiceCreate, ServiceUpdate, ProductCreate, ProductUpdate
 
 
 def get_services(db: Session, company_id: int, active_only: bool = False):
-    q = db.query(ServiceCatalog).filter(ServiceCatalog.company_id == company_id)
+    q = db.query(ServiceCatalog).options(selectinload(ServiceCatalog.service_type)).filter(ServiceCatalog.company_id == company_id)
     if active_only:
         q = q.filter(ServiceCatalog.is_active == True)
     return q.order_by(ServiceCatalog.name).all()
 
 
 def get_service(db: Session, company_id: int, service_id: int):
-    return db.query(ServiceCatalog).filter(
+    return db.query(ServiceCatalog).options(selectinload(ServiceCatalog.service_type)).filter(
         ServiceCatalog.id == service_id,
         ServiceCatalog.company_id == company_id,
     ).first()

@@ -9,6 +9,7 @@ class CompanyBase(BaseModel):
     phone: Optional[str] = None
     address: Optional[str] = None
     commission_by_service: bool = False
+    auto_confirm_appointments: bool = False
 
 
 class CompanyCreate(CompanyBase):
@@ -22,6 +23,7 @@ class CompanyUpdate(BaseModel):
     address: Optional[str] = None
     is_active: Optional[bool] = None
     commission_by_service: Optional[bool] = None
+    auto_confirm_appointments: Optional[bool] = None
     open_hour: Optional[str] = None
     close_hour: Optional[str] = None
     operating_days: Optional[str] = None

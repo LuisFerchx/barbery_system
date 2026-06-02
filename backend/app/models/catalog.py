@@ -10,12 +10,14 @@ class ServiceCatalog(Base):
     company_id = Column(Integer, ForeignKey("companies.id"), nullable=False, index=True)
     name = Column(String(100), nullable=False)
     category = Column(String(20), nullable=False)  # haircut, beard, combo, other
+    service_type_id = Column(Integer, ForeignKey("service_types.id"), nullable=True, index=True)
     price = Column(Numeric(10, 2), nullable=False)
     commission_rate = Column(Numeric(5, 4), nullable=True)
     duration = Column(Integer, nullable=True)
     is_active = Column(Boolean, default=True)
 
     company = relationship("Company")
+    service_type = relationship("ServiceType", back_populates="services")
     sales = relationship("Sale", back_populates="service")
 
 
