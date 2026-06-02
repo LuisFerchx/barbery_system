@@ -22,7 +22,7 @@ def upgrade() -> None:
         'appointment_id', sa.Integer(),
         sa.ForeignKey('appointments.id'), nullable=True
     ))
-    op.create_index('ix_sales_appointment_id', 'sales', ['appointment_id'])
+    op.create_index('ix_sales_appointment_id', 'sales', ['appointment_id'], unique=True)
 
 
 def downgrade() -> None:

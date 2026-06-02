@@ -53,6 +53,14 @@ function SuperadminRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
+function AdminRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth()
+  if (loading) return <div className="flex items-center justify-center h-screen text-gray-400">Cargando...</div>
+  if (!user) return <Navigate to="/login" replace />
+  if (user.role !== 'admin' && user.role !== 'superadmin') return <Navigate to="/" replace />
+  return <>{children}</>
+}
+
 /**
  * Defines the application's client-side route hierarchy, including protected and role-restricted routes.
  *
@@ -82,7 +90,7 @@ function AppRoutes() {
         <Route path="citas" element={<CitasList />} />
         <Route path="citas/calendario" element={<CitasCalendar />} />
         <Route path="citas/diario" element={<CitasCalendarDiario />} />
-        <Route path="service-types" element={<ServiceTypes />} />
+        <Route path="service-types" element={<AdminRoute><ServiceTypes /></AdminRoute>} />
         <Route path="companies" element={<SuperadminRoute><Companies /></SuperadminRoute>} />
       </Route>
     </Routes>

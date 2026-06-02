@@ -139,7 +139,7 @@ def get_sale(db: Session, company_id: int, sale_id: int):
     )
 
 
-def create_sale(db: Session, company_id: int, sale_in: SaleCreate):
+def create_sale(db: Session, company_id: int, sale_in: SaleCreate, auto_commit: bool = True):
     barber = db.query(Barber).filter(
         Barber.id == sale_in.barber_id,
         Barber.company_id == company_id,
@@ -185,20 +185,25 @@ def create_sale(db: Session, company_id: int, sale_in: SaleCreate):
     if sale_in.courtesy_drink_given:
         _deduct_courtesy_drink(db_obj.id, db, company_id, item_id=sale_in.courtesy_drink_item_id)
 
-    db.commit()
-    db.refresh(db_obj)
-    return get_sale(db, company_id, db_obj.id)
+    if auto_commit:
+        db.commit()
+        db.refresh(db_obj)
+        return get_sale(db, company_id, db_obj.id)
+    else:
+        db.flush()
+        db.refresh(db_obj)
+        return db_obj
 
 
 def delete_sale(db: Session, company_id: int, sale_id: int):
     """
-    Delete a sale record for a given company and sale ID.
-    
+    Delete a sale record for a given company and sale ID, and delete the linked appointment if it belongs to the same company.
+
     Parameters:
         db (Session): Database session.
         company_id (int): ID of the company that must own the sale.
         sale_id (int): ID of the sale to delete.
-    
+
     Returns:
         Sale | None: The deleted Sale ORM object if it existed and was removed, otherwise `None`.
     """
@@ -208,13 +213,16 @@ def delete_sale(db: Session, company_id: int, sale_id: int):
     ).first()
     if db_obj:
         appointment_id = db_obj.appointment_id
+        sale_company_id = db_obj.company_id
         db.delete(db_obj)
-        db.commit()
         if appointment_id:
-            appt = db.query(Appointment).filter(Appointment.id == appointment_id).first()
+            appt = db.query(Appointment).filter(
+                Appointment.id == appointment_id,
+                Appointment.company_id == sale_company_id,
+            ).first()
             if appt:
                 db.delete(appt)
-                db.commit()
+        db.commit()
     return db_obj
 
 
