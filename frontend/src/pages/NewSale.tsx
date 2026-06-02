@@ -4,7 +4,7 @@ import { useForm, Controller } from 'react-hook-form'
 import { DollarSign, User, Scissors, Package, Coffee, CreditCard, ArrowLeft } from 'lucide-react'
 import { salesApi, barbersApi, catalogApi, clientsApi, inventoryApi } from '../services/api'
 import { useAuth } from '../context/AuthContext'
-import { fmt } from '../utils/format'
+import { fmt, localDayStr } from '../utils/format'
 import type { Barber, ServiceCatalog, Client, InventoryItem } from '../types'
 import toast from 'react-hot-toast'
 
@@ -91,6 +91,16 @@ function FinancialPreview({ grossTotal, commissionRate, rateSource, splitConfig 
   )
 }
 
+/**
+ * Renders the "Nuevo Corte" form for creating a new sale and handles its submission.
+ *
+ * The component provides inputs for date, barber, client (searchable), service, optional courtesy drink,
+ * payment details, optional notes, and a financial preview when commission information is available.
+ * On submit it validates required fields, posts the sale to the API, shows success or error toasts,
+ * and navigates to the sales list on success.
+ *
+ * @returns The React element for the "Nuevo Corte" form.
+ */
 export default function NewSale() {
   const navigate = useNavigate()
   const { user, splitConfig } = useAuth()
@@ -104,7 +114,7 @@ export default function NewSale() {
 
   const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<FormData>({
     defaultValues: {
-      date: new Date().toISOString().split('T')[0],
+      date: localDayStr(),
       payment_method: 'cash',
       is_returning_client: false,
       courtesy_drink_given: false,
@@ -176,8 +186,12 @@ export default function NewSale() {
 
     setSaving(true)
     try {
+      const now = new Date()
+      const hh = String(now.getUTCHours()).padStart(2, '0')
+      const mm = String(now.getUTCMinutes()).padStart(2, '0')
+      const ss = String(now.getUTCSeconds()).padStart(2, '0')
       await salesApi.create({
-        date: new Date(data.date + 'T12:00:00').toISOString(),
+        date: `${data.date}T${hh}:${mm}:${ss}+00:00`,
         client_id: data.client_id ? parseInt(data.client_id) : null,
         barber_id: parseInt(data.barber_id),
         service_id: parseInt(data.service_id),
