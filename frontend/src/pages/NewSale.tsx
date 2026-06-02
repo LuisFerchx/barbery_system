@@ -91,6 +91,16 @@ function FinancialPreview({ grossTotal, commissionRate, rateSource, splitConfig 
   )
 }
 
+/**
+ * Renders the "Nuevo Corte" form for creating a new sale and handles its submission.
+ *
+ * The component provides inputs for date, barber, client (searchable), service, optional courtesy drink,
+ * payment details, optional notes, and a financial preview when commission information is available.
+ * On submit it validates required fields, posts the sale to the API, shows success or error toasts,
+ * and navigates to the sales list on success.
+ *
+ * @returns The React element for the "Nuevo Corte" form.
+ */
 export default function NewSale() {
   const navigate = useNavigate()
   const { user, splitConfig } = useAuth()

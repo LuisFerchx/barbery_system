@@ -8,10 +8,22 @@ import { fmt } from '../utils/format'
 import type { Sale, Barber, SaleListOut, InventoryItem } from '../types'
 import toast from 'react-hot-toast'
 
+/**
+ * Get the current date as an ISO date string (YYYY-MM-DD).
+ *
+ * @returns The current date formatted as `YYYY-MM-DD`.
+ */
 function todayStr() {
   return new Date().toISOString().slice(0, 10)
 }
 
+/**
+ * Produce a UTC date string that is the given number of days away from a base date.
+ *
+ * @param base - Base date in `YYYY-MM-DD` format
+ * @param days - Number of days to add to `base` (use a negative value to subtract days)
+ * @returns The resulting date in `YYYY-MM-DD` format (UTC)
+ */
 function offsetDate(base: string, days: number) {
   const d = new Date(base + 'T00:00:00Z')
   d.setUTCDate(d.getUTCDate() + days)
@@ -26,13 +38,9 @@ const PAYMENT_LABELS: Record<string, string> = {
 }
 
 /**
- * Render the Sales History page with filtering, listing, detail view, and edit capabilities.
+ * Sales History page with a day picker, barber filter, paginated sales table, and row actions to view, edit, or delete sales; includes detail and edit modals.
  *
- * The component displays a paginated table of sales with month and barber filters, actions to view details,
- * edit, or delete a sale, and modals for sale details and editing. It fetches barber options on mount and
- * reloads the sales list when page, month, or barber filter change.
- *
- * @returns The sales history page as a JSX element
+ * @returns The rendered Sales History page element.
  */
 export default function SalesHistory() {
   const navigate = useNavigate()
