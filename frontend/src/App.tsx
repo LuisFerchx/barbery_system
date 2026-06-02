@@ -23,6 +23,7 @@ import CitasCalendar from './pages/CitasCalendar'
 import CitasCalendarDiario from './pages/CitasCalendarDiario'
 import PublicBooking from './pages/PublicBooking'
 import AppointmentLookup from './pages/AppointmentLookup'
+import ServiceTypes from './pages/ServiceTypes'
 
 /**
  * Guards a route by requiring an authenticated user and renders its children when allowed.
@@ -81,6 +82,7 @@ function AppRoutes() {
         <Route path="citas" element={<CitasList />} />
         <Route path="citas/calendario" element={<CitasCalendar />} />
         <Route path="citas/diario" element={<CitasCalendarDiario />} />
+        <Route path="service-types" element={<ServiceTypes />} />
         <Route path="companies" element={<SuperadminRoute><Companies /></SuperadminRoute>} />
       </Route>
     </Routes>

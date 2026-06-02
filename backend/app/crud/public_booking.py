@@ -3,7 +3,7 @@ import string
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 
 from ..models.appointment import Appointment
 from ..models.barber import Barber
@@ -38,6 +38,7 @@ def get_shop(db: Session, slug: str) -> Optional[Company]:
 def get_public_barbers(db: Session, company_id: int) -> List[Barber]:
     return (
         db.query(Barber)
+        .options(selectinload(Barber.service_types))
         .filter(Barber.company_id == company_id, Barber.is_active == True)
         .order_by(Barber.name)
         .all()

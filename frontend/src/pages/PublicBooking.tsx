@@ -1,7 +1,19 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { bookingApi } from '../services/publicApi'
 import type { ShopInfo, BarberPublic, ServicePublic, SlotPublic, BookingResult } from '../services/publicApi'
+
+function filterServicesByBarber(
+  services: ServicePublic[],
+  barbers: BarberPublic[],
+  barberId: number | null,
+): ServicePublic[] {
+  if (!barberId) return services
+  const barber = barbers.find(b => b.id === barberId)
+  if (!barber || barber.service_types.length === 0) return services
+  const typeIds = new Set(barber.service_types.map(st => st.id))
+  return services.filter(s => s.service_type_id == null || typeIds.has(s.service_type_id))
+}
 import BookingStepper from '../components/booking/BookingStepper'
 import StepShopInfo from '../components/booking/StepShopInfo'
 import StepBarber from '../components/booking/StepBarber'
@@ -25,6 +37,11 @@ export default function PublicBooking() {
   const [selectedBarberId, setSelectedBarberId] = useState<number | null>(null)
   const [selectedServiceId, setSelectedServiceId] = useState<number | null>(null)
   const [selectedSlot, setSelectedSlot] = useState<SlotPublic | null>(null)
+
+  const filteredServices = useMemo(
+    () => filterServicesByBarber(services, barbers, selectedBarberId),
+    [services, barbers, selectedBarberId],
+  )
   const [clientData, setClientData] = useState<ClientFormData>(EMPTY_CLIENT)
 
   const [booking, setBooking] = useState<BookingResult | null>(null)
@@ -123,7 +140,14 @@ export default function PublicBooking() {
             <StepBarber
               barbers={barbers}
               selectedId={selectedBarberId}
-              onSelect={setSelectedBarberId}
+              onSelect={(id) => {
+                setSelectedBarberId(id)
+                const filtered = filterServicesByBarber(services, barbers, id)
+                if (selectedServiceId && !filtered.some(s => s.id === selectedServiceId)) {
+                  setSelectedServiceId(null)
+                  setSelectedSlot(null)
+                }
+              }}
               onNext={() => setStep(3)}
               onBack={() => setStep(1)}
             />
@@ -133,7 +157,7 @@ export default function PublicBooking() {
             <StepDateTime
               slug={slug!}
               barberId={selectedBarberId!}
-              services={services}
+              services={filteredServices}
               selectedServiceId={selectedServiceId}
               selectedSlot={selectedSlot}
               onSelectService={(id) => { setSelectedServiceId(id); setSelectedSlot(null) }}

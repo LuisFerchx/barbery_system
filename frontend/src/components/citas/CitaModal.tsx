@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Clock, User, Scissors, Calendar, RefreshCw, XCircle, CheckCircle, AlertCircle, CalendarPlus, Share2, Copy, Check, X } from 'lucide-react'
 import QRCode from 'react-qr-code'
 import toast from 'react-hot-toast'
@@ -75,6 +75,14 @@ export default function CitaModal({ open, onClose, mode, appointment, defaultDat
   const [loading, setLoading] = useState(false)
   const [showShare, setShowShare] = useState(false)
 
+  const filteredServices = useMemo(() => {
+    if (!barberId) return services
+    const barber = barbers.find(b => String(b.id) === barberId)
+    if (!barber || barber.service_types.length === 0) return services
+    const typeIds = new Set(barber.service_types.map(st => st.id))
+    return services.filter(s => s.service_type_id == null || typeIds.has(s.service_type_id))
+  }, [services, barbers, barberId])
+
   const selectedService = services.find(s => String(s.id) === serviceId)
   const duration = selectedService?.duration ?? 30
 
@@ -121,6 +129,12 @@ export default function CitaModal({ open, onClose, mode, appointment, defaultDat
       setTime(`${String(dt.getUTCHours()).padStart(2, '0')}:${String(dt.getUTCMinutes()).padStart(2, '0')}`)
     }
   }, [open, mode, appointment, defaultDate, defaultTime, defaultBarberId])
+
+  useEffect(() => {
+    if (mode === 'create' && serviceId && !filteredServices.some(s => String(s.id) === serviceId)) {
+      setServiceId('')
+    }
+  }, [filteredServices, mode, serviceId])
 
   useEffect(() => {
     const activeBarberId = mode === 'reschedule' ? appointment?.barber_id : Number(barberId)
@@ -384,7 +398,7 @@ export default function CitaModal({ open, onClose, mode, appointment, defaultDat
               <label className="label">Servicio *</label>
               <select className="input w-full" value={serviceId} onChange={e => setServiceId(e.target.value)}>
                 <option value="">Seleccionar servicio</option>
-                {services.map(s => (
+                {filteredServices.map(s => (
                   <option key={s.id} value={s.id}>{s.name} ({s.duration ?? 30} min)</option>
                 ))}
               </select>

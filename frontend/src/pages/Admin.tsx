@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Plus, Trash2, Pencil, CalendarDays, Clock, RefreshCw } from 'lucide-react'
-import { usersApi, barbersApi, catalogApi } from '../services/api'
+import { usersApi, barbersApi, catalogApi, serviceTypesApi } from '../services/api'
 import Modal from '../components/ui/Modal'
 import Table from '../components/ui/Table'
 import PhoneInput, { splitPhone } from '../components/ui/PhoneInput'
 import { fmt } from '../utils/format'
-import type { User, Barber, BarberHours, ServiceCatalog, ProductCatalog } from '../types'
+import type { User, Barber, BarberHours, ServiceCatalog, ProductCatalog, ServiceType } from '../types'
 import toast from 'react-hot-toast'
 
 type Tab = 'users' | 'barbers' | 'catalog'
@@ -619,9 +619,11 @@ const EMPTY_BARBER = { name: '', lastname: '', dialCode: '+57', phone: '', commi
  */
 function BarbersTab() {
   const [barbers, setBarbers] = useState<Barber[]>([])
+  const [serviceTypes, setServiceTypes] = useState<ServiceType[]>([])
   const [showModal, setShowModal] = useState(false)
   const [editing, setEditing] = useState<Barber | null>(null)
   const [form, setForm] = useState(EMPTY_BARBER)
+  const [selectedServiceTypeIds, setSelectedServiceTypeIds] = useState<number[]>([])
   const [saving, setSaving] = useState(false)
   const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
@@ -634,12 +636,16 @@ function BarbersTab() {
     setShowHoursModal(true)
   }
 
-  const load = useCallback(() => { barbersApi.list().then(r => setBarbers(r.data)) }, [])
+  const load = useCallback(() => {
+    barbersApi.list().then(r => setBarbers(r.data))
+    serviceTypesApi.list().then(r => setServiceTypes(r.data))
+  }, [])
   useEffect(() => { load() }, [load])
 
   const openCreate = () => {
     setEditing(null)
     setForm(EMPTY_BARBER)
+    setSelectedServiceTypeIds([])
     setPhotoFile(null)
     setPhotoPreview(null)
     setShowModal(true)
@@ -648,9 +654,16 @@ function BarbersTab() {
     setEditing(b)
     const { dialCode, phone } = splitPhone(b.phone || '')
     setForm({ name: b.name, lastname: b.lastname, dialCode, phone, commission_rate: String((Number(b.commission_rate) * 100).toFixed(0)) })
+    setSelectedServiceTypeIds(b.service_types.map(st => st.id))
     setPhotoFile(null)
     setPhotoPreview(b.photo_url || null)
     setShowModal(true)
+  }
+
+  const toggleServiceType = (id: number) => {
+    setSelectedServiceTypeIds(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    )
   }
 
   const handleSave = async () => {
@@ -665,13 +678,18 @@ function BarbersTab() {
       }
       if (editing) {
         await barbersApi.update(editing.id, payload)
+        await barbersApi.updateServiceTypes(editing.id, { service_type_ids: selectedServiceTypeIds })
         toast.success('Barbero actualizado')
       } else {
         const res = await barbersApi.create(payload)
+        const newBarber = res.data as Barber
         if (photoFile) {
           const fd = new FormData()
           fd.append('file', photoFile)
-          await barbersApi.uploadPhoto((res.data as Barber).id, fd)
+          await barbersApi.uploadPhoto(newBarber.id, fd)
+        }
+        if (selectedServiceTypeIds.length > 0) {
+          await barbersApi.updateServiceTypes(newBarber.id, { service_type_ids: selectedServiceTypeIds })
         }
         toast.success('Barbero creado')
       }
@@ -727,6 +745,20 @@ function BarbersTab() {
     { key: 'name', label: 'Nombre', render: (_: string, row: Barber) => `${row.name} ${row.lastname}` },
     { key: 'phone', label: 'Teléfono', render: (v: string | null) => v || '—' },
     { key: 'commission_rate', label: 'Comisión', render: (v: number) => `${(Number(v) * 100).toFixed(0)}%` },
+    {
+      key: 'service_types', label: 'Tipos', render: (_: ServiceType[], row: Barber) => (
+        row.service_types.length > 0
+          ? <div className="flex flex-wrap gap-1">
+              {row.service_types.map(st => (
+                <span key={st.id} className="text-[10px] px-1.5 py-0.5 rounded-full font-medium"
+                  style={{ background: 'rgba(96,165,250,0.1)', color: '#60a5fa', border: '1px solid rgba(96,165,250,0.2)' }}>
+                  {st.name}
+                </span>
+              ))}
+            </div>
+          : <span style={{ color: 'var(--text-muted)' }}>—</span>
+      ),
+    },
     { key: 'is_active', label: 'Estado', render: (v: boolean) => (
       <span style={{ color: v ? '#4ade80' : '#f87171' }} className="text-xs">{v ? 'Activo' : 'Inactivo'}</span>
     )},
@@ -784,6 +816,31 @@ function BarbersTab() {
               </div>
             </div>
           </div>
+          {serviceTypes.length > 0 && (
+            <div className="pt-1">
+              <label className="text-xs block mb-2" style={{ color: 'var(--text-muted)' }}>Tipos de servicio que ofrece</label>
+              <div className="flex flex-wrap gap-2">
+                {serviceTypes.filter(st => st.is_active).map(st => {
+                  const selected = selectedServiceTypeIds.includes(st.id)
+                  return (
+                    <button
+                      key={st.id}
+                      type="button"
+                      onClick={() => toggleServiceType(st.id)}
+                      className="text-xs px-3 py-1.5 rounded-full font-medium transition-all duration-150"
+                      style={{
+                        background: selected ? 'rgba(96,165,250,0.15)' : 'rgba(255,255,255,0.04)',
+                        color: selected ? '#60a5fa' : 'var(--text-muted)',
+                        border: selected ? '1px solid rgba(96,165,250,0.4)' : '1px solid rgba(255,255,255,0.08)',
+                      }}
+                    >
+                      {st.name}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
           <div className="pt-1">
             <label className="text-xs block mb-2" style={{ color: 'var(--text-muted)' }}>Foto de perfil</label>
             <div className="flex items-center gap-3">

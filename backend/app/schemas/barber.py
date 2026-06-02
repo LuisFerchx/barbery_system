@@ -2,6 +2,7 @@ from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
 from decimal import Decimal
+from .service_type import ServiceTypeOut
 
 
 class BarberCreate(BaseModel):
@@ -19,6 +20,10 @@ class BarberUpdate(BaseModel):
     is_active: Optional[bool] = None
 
 
+class BarberServiceTypesUpdate(BaseModel):
+    service_type_ids: list[int]
+
+
 class BarberOut(BaseModel):
     id: int
     name: str
@@ -28,5 +33,6 @@ class BarberOut(BaseModel):
     commission_rate: Decimal
     is_active: bool
     created_at: datetime
+    service_types: list[ServiceTypeOut] = []
 
     model_config = {"from_attributes": True}

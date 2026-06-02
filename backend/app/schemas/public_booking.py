@@ -17,11 +17,19 @@ class ShopPublicOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class ServiceTypePublicOut(BaseModel):
+    id: int
+    name: str
+
+    model_config = {"from_attributes": True}
+
+
 class BarberPublicOut(BaseModel):
     id: int
     name: str
     lastname: str
     photo_url: Optional[str] = None
+    service_types: List[ServiceTypePublicOut] = []
 
     model_config = {"from_attributes": True}
 
@@ -30,6 +38,7 @@ class ServicePublicOut(BaseModel):
     id: int
     name: str
     category: str
+    service_type_id: Optional[int] = None
     price: float
     duration: Optional[int] = None
 

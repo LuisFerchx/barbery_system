@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, Numeric, ForeignKey, func
 from sqlalchemy.orm import relationship
 from ..database import Base
+from .associations import barber_service_types
 
 
 class Barber(Base):
@@ -19,3 +20,4 @@ class Barber(Base):
     company = relationship("Company")
     sales = relationship("Sale", back_populates="barber")
     product_sales = relationship("ProductSale", back_populates="barber")
+    service_types = relationship("ServiceType", secondary=barber_service_types, back_populates="barbers")

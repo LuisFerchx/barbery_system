@@ -27,6 +27,13 @@ export interface User {
   created_at: string
 }
 
+export interface ServiceType {
+  id: number
+  name: string
+  description?: string | null
+  is_active: boolean
+}
+
 export interface Barber {
   id: number
   name: string
@@ -36,6 +43,7 @@ export interface Barber {
   commission_rate: number
   is_active: boolean
   created_at: string
+  service_types: ServiceType[]
 }
 
 export interface Client {
@@ -55,6 +63,8 @@ export interface ServiceCatalog {
   id: number
   name: string
   category: 'haircut' | 'beard' | 'combo' | 'other'
+  service_type_id?: number | null
+  service_type?: ServiceType | null
   price: number
   commission_rate?: number | null
   duration?: number | null
