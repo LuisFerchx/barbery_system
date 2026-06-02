@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { salesApi, barbersApi, inventoryApi } from '../services/api'
 import Table from '../components/ui/Table'
 import Modal from '../components/ui/Modal'
-import { fmt } from '../utils/format'
+import { fmt, localDayStr } from '../utils/format'
 import type { Sale, Barber, SaleListOut, InventoryItem } from '../types'
 import toast from 'react-hot-toast'
 
@@ -14,7 +14,7 @@ import toast from 'react-hot-toast'
  * @returns The current date formatted as `YYYY-MM-DD`.
  */
 function todayStr() {
-  return new Date().toISOString().slice(0, 10)
+  return localDayStr()
 }
 
 /**
