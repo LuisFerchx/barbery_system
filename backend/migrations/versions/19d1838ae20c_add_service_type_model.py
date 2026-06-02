@@ -25,7 +25,7 @@ def upgrade() -> None:
     sa.Column('company_id', sa.Integer(), nullable=False),
     sa.Column('name', sa.String(length=100), nullable=False),
     sa.Column('description', sa.String(length=255), nullable=True),
-    sa.Column('is_active', sa.Boolean(), nullable=True),
+    sa.Column('is_active', sa.Boolean(), nullable=False, server_default=sa.text('true')),
     sa.ForeignKeyConstraint(['company_id'], ['companies.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
@@ -40,7 +40,7 @@ def upgrade() -> None:
     )
     op.add_column('service_catalog', sa.Column('service_type_id', sa.Integer(), nullable=True))
     op.create_index(op.f('ix_service_catalog_service_type_id'), 'service_catalog', ['service_type_id'], unique=False)
-    op.create_foreign_key(None, 'service_catalog', 'service_types', ['service_type_id'], ['id'])
+    op.create_foreign_key('fk_service_catalog_service_type_id', 'service_catalog', 'service_types', ['service_type_id'], ['id'])
     # ### end Alembic commands ###
 
 

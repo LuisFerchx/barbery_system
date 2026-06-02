@@ -8,6 +8,16 @@ import { fmt } from '../utils/format'
 import type { Sale, Barber, SaleListOut, InventoryItem } from '../types'
 import toast from 'react-hot-toast'
 
+function todayStr() {
+  return new Date().toISOString().slice(0, 10)
+}
+
+function offsetDate(base: string, days: number) {
+  const d = new Date(base + 'T00:00:00Z')
+  d.setUTCDate(d.getUTCDate() + days)
+  return d.toISOString().slice(0, 10)
+}
+
 const PAYMENT_LABELS: Record<string, string> = {
   cash: 'Efectivo',
   card_debit: 'Débito',
@@ -30,10 +40,7 @@ export default function SalesHistory() {
   const [barbers, setBarbers] = useState<Barber[]>([])
   const [page, setPage] = useState(1)
   const [barberId, setBarberId] = useState<string>('')
-  const [month, setMonth] = useState(() => {
-    const now = new Date()
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
-  })
+  const [date, setDate] = useState(todayStr)
   const [detail, setDetail] = useState<Sale | null>(null)
   const [editingSale, setEditingSale] = useState<Sale | null>(null)
   const [loading, setLoading] = useState(false)
@@ -44,17 +51,15 @@ export default function SalesHistory() {
 
   const load = useCallback(() => {
     setLoading(true)
-    const [year, mon] = month.split('-')
-    const date_from = `${year}-${mon}-01T00:00:00`
-    const lastDay = new Date(parseInt(year), parseInt(mon), 0).getDate()
-    const date_to = `${year}-${mon}-${lastDay}T23:59:59`
+    const date_from = `${date}T00:00:00`
+    const date_to = `${date}T23:59:59`
     const params: Record<string, unknown> = { page, page_size: 20, date_from, date_to }
     if (barberId) params.barber_id = parseInt(barberId)
     salesApi.list(params)
       .then(r => setData(r.data))
       .catch(() => toast.error('Error al cargar ventas'))
       .finally(() => setLoading(false))
-  }, [page, month, barberId])
+  }, [page, date, barberId])
 
   useEffect(() => { load() }, [load])
 
@@ -108,13 +113,24 @@ export default function SalesHistory() {
       {/* Filters */}
       <div className="card mb-4 flex gap-3 flex-wrap">
         <div>
-          <label className="text-xs block mb-1" style={{ color: 'var(--text-muted)' }}>Mes</label>
-          <input
-            type="month"
-            value={month}
-            onChange={e => { setMonth(e.target.value); setPage(1) }}
-            className="input"
-          />
+          <label className="text-xs block mb-1" style={{ color: 'var(--text-muted)' }}>Día</label>
+          <div className="flex items-center gap-1">
+            <button className="btn-icon" onClick={() => { setDate(d => offsetDate(d, -1)); setPage(1) }}>
+              <ChevronLeft size={14} />
+            </button>
+            <input
+              type="date"
+              value={date}
+              onChange={e => { setDate(e.target.value); setPage(1) }}
+              className="input py-1.5 px-2 text-sm"
+            />
+            <button className="btn-icon" onClick={() => { setDate(d => offsetDate(d, 1)); setPage(1) }}>
+              <ChevronRight size={14} />
+            </button>
+            <button className="btn-secondary text-xs py-1.5 px-3" onClick={() => { setDate(todayStr()); setPage(1) }}>
+              Hoy
+            </button>
+          </div>
         </div>
         <div>
           <label className="text-xs block mb-1" style={{ color: 'var(--text-muted)' }}>Barbero</label>
