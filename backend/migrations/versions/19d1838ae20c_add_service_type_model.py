@@ -25,8 +25,7 @@ def upgrade() -> None:
     sa.Column('company_id', sa.Integer(), nullable=False),
     sa.Column('name', sa.String(length=100), nullable=False),
     sa.Column('description', sa.String(length=255), nullable=True),
-<<<<<<< HEAD
-    sa.Column('is_active', sa.Boolean(), nullable=False, server_default=sa.text('1')),
+    sa.Column('is_active', sa.Boolean(), nullable=False, server_default=sa.text('true')),
     sa.ForeignKeyConstraint(['company_id'], ['companies.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
