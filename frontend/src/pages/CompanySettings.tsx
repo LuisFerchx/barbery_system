@@ -25,6 +25,7 @@ interface Form {
   open_hour: string
   close_hour: string
   commission_by_service: boolean
+  auto_confirm_appointments: boolean
 }
 
 const EMPTY: Form = {
@@ -35,6 +36,7 @@ const EMPTY: Form = {
   open_hour: '',
   close_hour: '',
   commission_by_service: false,
+  auto_confirm_appointments: false,
 }
 
 function fromCompany(c: Company): { form: Form; days: Set<string> } {
@@ -48,6 +50,7 @@ function fromCompany(c: Company): { form: Form; days: Set<string> } {
       open_hour: c.open_hour ?? '',
       close_hour: c.close_hour ?? '',
       commission_by_service: c.commission_by_service,
+      auto_confirm_appointments: c.auto_confirm_appointments,
     },
     days: new Set(c.operating_days?.split(',').filter(Boolean) ?? []),
   }
@@ -99,6 +102,7 @@ export default function CompanySettings() {
         close_hour: form.close_hour || null,
         operating_days: selectedDays.size > 0 ? [...selectedDays].join(',') : null,
         commission_by_service: form.commission_by_service,
+        auto_confirm_appointments: form.auto_confirm_appointments,
       })
       toast.success('Empresa actualizada')
     } catch {
@@ -272,6 +276,21 @@ export default function CompanySettings() {
             <span className="text-sm font-medium block">Comisión por servicio</span>
             <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
               Usa la comisión definida en cada servicio en lugar de la del barbero
+            </span>
+          </label>
+        </div>
+        <div className="flex items-start gap-3">
+          <input
+            type="checkbox"
+            id="auto_confirm_appointments"
+            checked={form.auto_confirm_appointments}
+            onChange={e => setForm(prev => ({ ...prev, auto_confirm_appointments: e.target.checked }))}
+            className="w-4 h-4 mt-0.5 cursor-pointer"
+          />
+          <label htmlFor="auto_confirm_appointments" className="cursor-pointer" style={{ color: 'var(--text-secondary)' }}>
+            <span className="text-sm font-medium block">Confirmar citas automáticamente</span>
+            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+              Las nuevas citas se confirman al instante sin revisión manual
             </span>
           </label>
         </div>

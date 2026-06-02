@@ -10,6 +10,7 @@ from ..models.company import Company
 from ..models.catalog import ServiceCatalog
 from ..models.config import IncomeSplitConfig
 from ..models.inventory import InventoryItem, InventoryMovement
+from ..models.appointment import Appointment
 from ..schemas.sale import SaleCreate, SaleUpdate
 
 
@@ -175,6 +176,7 @@ def create_sale(db: Session, company_id: int, sale_in: SaleCreate):
         courtesy_drink_item_id=sale_in.courtesy_drink_item_id,
         cross_sell=sale_in.cross_sell,
         notes=sale_in.notes,
+        appointment_id=sale_in.appointment_id,
         **financials,
     )
     db.add(db_obj)
@@ -205,8 +207,14 @@ def delete_sale(db: Session, company_id: int, sale_id: int):
         Sale.company_id == company_id,
     ).first()
     if db_obj:
+        appointment_id = db_obj.appointment_id
         db.delete(db_obj)
         db.commit()
+        if appointment_id:
+            appt = db.query(Appointment).filter(Appointment.id == appointment_id).first()
+            if appt:
+                db.delete(appt)
+                db.commit()
     return db_obj
 
 

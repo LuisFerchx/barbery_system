@@ -6,6 +6,7 @@ export interface Company {
   address?: string
   is_active: boolean
   commission_by_service: boolean
+  auto_confirm_appointments: boolean
   open_hour?: string | null
   close_hour?: string | null
   operating_days?: string | null
@@ -104,6 +105,7 @@ export interface Sale {
   courtesy_drink_item_name?: string | null
   cross_sell: boolean
   notes?: string
+  appointment_id?: number | null
   created_at: string
 }
 

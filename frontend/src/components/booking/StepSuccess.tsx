@@ -40,10 +40,12 @@ export default function StepSuccess({ booking, onRestart }: Props) {
 
       <div>
         <h2 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>
-          ¡Cita agendada!
+          {booking.status === 'confirmed' ? '¡Cita confirmada!' : '¡Cita agendada!'}
         </h2>
         <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
-          Guarda tu código para consultar el estado
+          {booking.status === 'confirmed'
+            ? 'Tu cita está confirmada'
+            : 'Pendiente de confirmación — guarda tu código'}
         </p>
       </div>
 

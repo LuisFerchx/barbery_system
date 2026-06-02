@@ -27,6 +27,7 @@ class Sale(Base):
     cross_sell = Column(Boolean, default=False)
     notes = Column(Text, nullable=True)
     bank_transaction_id = Column(Integer, ForeignKey("bank_transactions.id"), nullable=True)
+    appointment_id = Column(Integer, ForeignKey("appointments.id"), nullable=True, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     company = relationship("Company")
@@ -35,3 +36,4 @@ class Sale(Base):
     service = relationship("ServiceCatalog", back_populates="sales")
     bank_transaction = relationship("BankTransaction", back_populates="sale")
     courtesy_drink_item = relationship("InventoryItem", foreign_keys=[courtesy_drink_item_id])
+    appointment = relationship("Appointment")

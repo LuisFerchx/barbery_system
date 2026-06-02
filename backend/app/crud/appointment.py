@@ -11,6 +11,7 @@ from ..models.client import Client
 from ..models.catalog import ServiceCatalog
 from ..models.company import Company
 from ..schemas.appointment import AppointmentCreate, AppointmentReschedule, AppointmentUpdate
+from ..schemas.sale import SaleCreate
 
 DEFAULT_DURATION = 30
 ACTIVE_STATUSES = ("pending", "confirmed")
@@ -328,6 +329,7 @@ def create_appointment(db: Session, company_id: int, data: AppointmentCreate) ->
     _check_barber_conflict(db, company_id, data.barber_id, scheduled_at, end_at)
     _check_barber_block_conflict(db, company_id, data.barber_id, scheduled_at, end_at)
 
+    initial_status = "confirmed" if company and company.auto_confirm_appointments else "pending"
     appt = Appointment(
         company_id=company_id,
         client_id=data.client_id,
@@ -335,12 +337,26 @@ def create_appointment(db: Session, company_id: int, data: AppointmentCreate) ->
         service_id=data.service_id,
         scheduled_at=scheduled_at,
         end_at=end_at,
-        status="pending",
+        status=initial_status,
         notes=data.notes,
     )
     db.add(appt)
     db.commit()
     db.refresh(appt)
+
+    if initial_status == "confirmed":
+        from .sale import create_sale
+        create_sale(db, company_id, SaleCreate(
+            appointment_id=appt.id,
+            date=appt.scheduled_at,
+            client_id=appt.client_id,
+            barber_id=appt.barber_id,
+            service_id=appt.service_id,
+            gross_total=service.price,
+            payment_method='cash',
+            notes='Creado automáticamente desde cita agendada',
+        ))
+
     return _load_with_relations(
         db.query(Appointment).filter(Appointment.id == appt.id)
     ).first()

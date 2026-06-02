@@ -199,14 +199,15 @@ export default function CitaModal({ open, onClose, mode, appointment, defaultDat
     setLoading(true)
     try {
       const scheduled_at = `${date}T${time}:00+00:00`
-      await appointmentsApi.create({
+      const result = await appointmentsApi.create({
         barber_id: Number(barberId),
         service_id: Number(serviceId),
         client_id: clientId ? Number(clientId) : null,
         scheduled_at,
         notes: notes || null,
       })
-      toast.success('Cita creada')
+      const created = result.data as Appointment
+      toast.success(created.status === 'confirmed' ? 'Cita creada y confirmada' : 'Cita creada')
       onSaved()
       onClose()
     } catch (e: unknown) {
@@ -247,6 +248,7 @@ export default function CitaModal({ open, onClose, mode, appointment, defaultDat
         }
 
         await salesApi.create({
+          appointment_id: appointment.id,
           date: appointment.scheduled_at,
           client_id: appointment.client_id || null,
           barber_id: appointment.barber_id,

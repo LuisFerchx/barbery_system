@@ -16,6 +16,7 @@ class SaleCreate(BaseModel):
     courtesy_drink_item_id: Optional[int] = None
     cross_sell: bool = False
     notes: Optional[str] = None
+    appointment_id: Optional[int] = None
 
 
 class SaleUpdate(BaseModel):
@@ -50,6 +51,7 @@ class SaleOut(BaseModel):
     courtesy_drink_item_name: Optional[str] = None
     cross_sell: bool
     notes: Optional[str] = None
+    appointment_id: Optional[int] = None
     created_at: datetime
 
     model_config = {"from_attributes": True}
