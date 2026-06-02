@@ -187,11 +187,15 @@ export default function NewSale() {
     setSaving(true)
     try {
       const now = new Date()
-      const hh = String(now.getUTCHours()).padStart(2, '0')
-      const mm = String(now.getUTCMinutes()).padStart(2, '0')
-      const ss = String(now.getUTCSeconds()).padStart(2, '0')
+      const hh = String(now.getHours()).padStart(2, '0')
+      const mm = String(now.getMinutes()).padStart(2, '0')
+      const ss = String(now.getSeconds()).padStart(2, '0')
+      const offsetMin = -now.getTimezoneOffset()
+      const sign = offsetMin >= 0 ? '+' : '-'
+      const offH = String(Math.floor(Math.abs(offsetMin) / 60)).padStart(2, '0')
+      const offM = String(Math.abs(offsetMin) % 60).padStart(2, '0')
       await salesApi.create({
-        date: `${data.date}T${hh}:${mm}:${ss}+00:00`,
+        date: `${data.date}T${hh}:${mm}:${ss}${sign}${offH}:${offM}`,
         client_id: data.client_id ? parseInt(data.client_id) : null,
         barber_id: parseInt(data.barber_id),
         service_id: parseInt(data.service_id),

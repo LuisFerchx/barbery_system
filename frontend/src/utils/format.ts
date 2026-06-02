@@ -13,7 +13,7 @@ export function localDayStr(date: Date = new Date()): string {
 export const fmt = {
   money: (n: number) => `$${n.toFixed(2)}`,
   date: (d: string) => new Date(d.includes('T') ? d : d + 'T00:00:00').toLocaleDateString('es-EC'),
-  datetime: (d: string) => new Date(d).toLocaleString('es-EC', { timeZone: 'UTC' }),
+  datetime: (d: string) => new Date(d).toLocaleString('es-EC'),
   percent: (n: number) => `${n.toFixed(1)}%`,
 }
 
