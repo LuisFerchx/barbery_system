@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { ServicePublic, SlotPublic } from '../../services/publicApi'
 import { bookingApi } from '../../services/publicApi'
+import { localDayStr } from '../../utils/format'
 
 interface Props {
   slug: string
@@ -15,7 +16,7 @@ interface Props {
 }
 
 function todayStr() {
-  return new Date().toISOString().split('T')[0]
+  return localDayStr()
 }
 
 export default function StepDateTime({

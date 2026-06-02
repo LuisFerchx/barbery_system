@@ -5,7 +5,7 @@ import toast from 'react-hot-toast'
 import Modal from '../ui/Modal'
 import { appointmentsApi, barbersApi, clientsApi, catalogApi, companiesApi, salesApi } from '../../services/api'
 import { bookingApi } from '../../services/publicApi'
-import { fmt } from '../../utils/format'
+import { fmt, localDayStr } from '../../utils/format'
 import type { Appointment, Barber, Client, ServiceCatalog, Company } from '../../types'
 import type { SlotPublic } from '../../services/publicApi'
 
@@ -70,7 +70,7 @@ export default function CitaModal({ open, onClose, mode, appointment, defaultDat
   const [rescheduleBarberIdState, setRescheduleBarberIdState] = useState('')
   const [serviceId, setServiceId] = useState('')
   const [clientId, setClientId] = useState('')
-  const [date, setDate] = useState(defaultDate || new Date().toISOString().slice(0, 10))
+  const [date, setDate] = useState(defaultDate || localDayStr())
   const [time, setTime] = useState(defaultTime || '')
   const [notes, setNotes] = useState('')
   const [loading, setLoading] = useState(false)
@@ -120,14 +120,14 @@ export default function CitaModal({ open, onClose, mode, appointment, defaultDat
       setBarberId(defaultBarberId ? String(defaultBarberId) : '')
       setServiceId('')
       setClientId('')
-      setDate(defaultDate || new Date().toISOString().slice(0, 10))
+      setDate(defaultDate || localDayStr())
       setTime(defaultTime || '')
       setNotes('')
     }
     if (open && mode === 'reschedule' && appointment) {
       const dt = new Date(appointment.scheduled_at)
-      setDate(dt.toISOString().slice(0, 10))
-      setTime(`${String(dt.getUTCHours()).padStart(2, '0')}:${String(dt.getUTCMinutes()).padStart(2, '0')}`)
+      setDate(localDayStr(dt))
+      setTime(`${String(dt.getHours()).padStart(2, '0')}:${String(dt.getMinutes()).padStart(2, '0')}`)
       setRescheduleBarberIdState(String(appointment.barber_id))
     }
   }, [open, mode, appointment, defaultDate, defaultTime, defaultBarberId])
@@ -169,8 +169,8 @@ export default function CitaModal({ open, onClose, mode, appointment, defaultDat
     if (mode !== 'reschedule' || !appointment) return slots
 
     const apptDt = new Date(appointment.scheduled_at)
-    const apptDateStr = apptDt.toISOString().slice(0, 10)
-    const apptTimeStr = `${String(apptDt.getUTCHours()).padStart(2, '0')}:${String(apptDt.getUTCMinutes()).padStart(2, '0')}`
+    const apptDateStr = localDayStr(apptDt)
+    const apptTimeStr = `${String(apptDt.getHours()).padStart(2, '0')}:${String(apptDt.getMinutes()).padStart(2, '0')}`
 
     const barberUnchanged = !rescheduleBarberIdState ||
       Number(rescheduleBarberIdState) === appointment.barber_id
@@ -205,7 +205,11 @@ export default function CitaModal({ open, onClose, mode, appointment, defaultDat
     }
     setLoading(true)
     try {
-      const scheduled_at = `${date}T${time}:00+00:00`
+      const offsetMin = -new Date().getTimezoneOffset()
+      const sign = offsetMin >= 0 ? '+' : '-'
+      const offH = String(Math.floor(Math.abs(offsetMin) / 60)).padStart(2, '0')
+      const offM = String(Math.abs(offsetMin) % 60).padStart(2, '0')
+      const scheduled_at = `${date}T${time}:00${sign}${offH}:${offM}`
       const result = await appointmentsApi.create({
         barber_id: Number(barberId),
         service_id: Number(serviceId),
@@ -229,7 +233,11 @@ export default function CitaModal({ open, onClose, mode, appointment, defaultDat
     if (!appointment || !date || !time) return
     setLoading(true)
     try {
-      const scheduled_at = `${date}T${time}:00+00:00`
+      const offsetMin = -new Date().getTimezoneOffset()
+      const sign = offsetMin >= 0 ? '+' : '-'
+      const offH = String(Math.floor(Math.abs(offsetMin) / 60)).padStart(2, '0')
+      const offM = String(Math.abs(offsetMin) % 60).padStart(2, '0')
+      const scheduled_at = `${date}T${time}:00${sign}${offH}:${offM}`
       const payload: { scheduled_at: string; barber_id?: number } = { scheduled_at }
       if (rescheduleBarberIdState && Number(rescheduleBarberIdState) !== appointment.barber_id) {
         payload.barber_id = Number(rescheduleBarberIdState)
@@ -420,7 +428,7 @@ export default function CitaModal({ open, onClose, mode, appointment, defaultDat
 
           <div>
             <label className="label">Fecha *</label>
-            <input type="date" className="input w-full" value={date} min={new Date().toISOString().slice(0, 10)} onChange={e => setDate(e.target.value)} />
+            <input type="date" className="input w-full" value={date} min={localDayStr()} onChange={e => setDate(e.target.value)} />
           </div>
 
           <div>
@@ -539,7 +547,7 @@ export default function CitaModal({ open, onClose, mode, appointment, defaultDat
 
           <div>
             <label className="label">Nueva fecha *</label>
-            <input type="date" className="input w-full" value={date} min={new Date().toISOString().slice(0, 10)} onChange={e => setDate(e.target.value)} />
+            <input type="date" className="input w-full" value={date} min={localDayStr()} onChange={e => setDate(e.target.value)} />
           </div>
 
           <div>
@@ -649,7 +657,7 @@ function buildGCalUrl(appt: Appointment): string {
  */
 function fmtTime(iso: string) {
   const d = new Date(iso)
-  return `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
 }
 
 /**
