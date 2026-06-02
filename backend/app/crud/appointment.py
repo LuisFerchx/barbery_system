@@ -394,14 +394,25 @@ def reschedule_appointment(
         scheduled_at = scheduled_at.replace(tzinfo=timezone.utc)
     end_at = scheduled_at + timedelta(minutes=duration)
 
+    effective_barber_id = appt.barber_id
+    if data.barber_id and data.barber_id != appt.barber_id:
+        new_barber = db.query(Barber).filter(
+            Barber.id == data.barber_id,
+            Barber.company_id == company_id,
+        ).first()
+        if not new_barber:
+            raise ValueError("El barbero seleccionado no existe o no pertenece a esta compañía")
+        effective_barber_id = data.barber_id
+
     company = db.query(Company).filter(Company.id == company_id).first()
     _validate_schedule(company, scheduled_at, end_at)
-    _check_barber_conflict(db, company_id, appt.barber_id, scheduled_at, end_at, exclude_id=appointment_id)
-    _check_barber_block_conflict(db, company_id, appt.barber_id, scheduled_at, end_at)
+    _check_barber_conflict(db, company_id, effective_barber_id, scheduled_at, end_at, exclude_id=appointment_id)
+    _check_barber_block_conflict(db, company_id, effective_barber_id, scheduled_at, end_at)
 
     appt.scheduled_at = scheduled_at
     appt.end_at = end_at
     appt.status = "pending"
+    appt.barber_id = effective_barber_id
     db.commit()
     db.refresh(appt)
     return _load_with_relations(

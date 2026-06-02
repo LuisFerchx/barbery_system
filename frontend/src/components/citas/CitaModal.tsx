@@ -67,6 +67,7 @@ export default function CitaModal({ open, onClose, mode, appointment, defaultDat
   const [loadingSlots, setLoadingSlots] = useState(false)
 
   const [barberId, setBarberId] = useState('')
+  const [rescheduleBarberIdState, setRescheduleBarberIdState] = useState('')
   const [serviceId, setServiceId] = useState('')
   const [clientId, setClientId] = useState('')
   const [date, setDate] = useState(defaultDate || new Date().toISOString().slice(0, 10))
@@ -127,6 +128,7 @@ export default function CitaModal({ open, onClose, mode, appointment, defaultDat
       const dt = new Date(appointment.scheduled_at)
       setDate(dt.toISOString().slice(0, 10))
       setTime(`${String(dt.getUTCHours()).padStart(2, '0')}:${String(dt.getUTCMinutes()).padStart(2, '0')}`)
+      setRescheduleBarberIdState(String(appointment.barber_id))
     }
   }, [open, mode, appointment, defaultDate, defaultTime, defaultBarberId])
 
@@ -137,7 +139,9 @@ export default function CitaModal({ open, onClose, mode, appointment, defaultDat
   }, [filteredServices, mode, serviceId])
 
   useEffect(() => {
-    const activeBarberId = mode === 'reschedule' ? appointment?.barber_id : Number(barberId)
+    const activeBarberId = mode === 'reschedule'
+      ? (rescheduleBarberIdState ? Number(rescheduleBarberIdState) : appointment?.barber_id)
+      : Number(barberId)
     const activeServiceId = mode === 'reschedule' ? appointment?.service_id : Number(serviceId)
     const slug = company?.slug
 
@@ -159,7 +163,7 @@ export default function CitaModal({ open, onClose, mode, appointment, defaultDat
       .finally(() => {
         setLoadingSlots(false)
       })
-  }, [company?.slug, barberId, serviceId, date, mode, appointment])
+  }, [company?.slug, barberId, rescheduleBarberIdState, serviceId, date, mode, appointment])
 
   const displaySlots = (() => {
     if (mode !== 'reschedule' || !appointment) return slots
@@ -168,7 +172,10 @@ export default function CitaModal({ open, onClose, mode, appointment, defaultDat
     const apptDateStr = apptDt.toISOString().slice(0, 10)
     const apptTimeStr = `${String(apptDt.getUTCHours()).padStart(2, '0')}:${String(apptDt.getUTCMinutes()).padStart(2, '0')}`
 
-    if (date === apptDateStr && !slots.some(s => s.time === apptTimeStr)) {
+    const barberUnchanged = !rescheduleBarberIdState ||
+      Number(rescheduleBarberIdState) === appointment.barber_id
+
+    if (barberUnchanged && date === apptDateStr && !slots.some(s => s.time === apptTimeStr)) {
       const newSlot: SlotPublic = {
         time: apptTimeStr,
         datetime: appointment.scheduled_at
@@ -223,7 +230,11 @@ export default function CitaModal({ open, onClose, mode, appointment, defaultDat
     setLoading(true)
     try {
       const scheduled_at = `${date}T${time}:00+00:00`
-      await appointmentsApi.reschedule(appointment.id, { scheduled_at })
+      const payload: { scheduled_at: string; barber_id?: number } = { scheduled_at }
+      if (rescheduleBarberIdState && Number(rescheduleBarberIdState) !== appointment.barber_id) {
+        payload.barber_id = Number(rescheduleBarberIdState)
+      }
+      await appointmentsApi.reschedule(appointment.id, payload)
       toast.success('Cita reagendada')
       onSaved()
       onClose()
@@ -505,11 +516,21 @@ export default function CitaModal({ open, onClose, mode, appointment, defaultDat
       {/* RESCHEDULE mode */}
       {mode === 'reschedule' && appointment && (
         <div className="space-y-3">
+          <div>
+            <label className="label">Barbero *</label>
+            <select
+              className="input w-full"
+              value={rescheduleBarberIdState}
+              onChange={e => setRescheduleBarberIdState(e.target.value)}
+            >
+              {barbers.map(b => (
+                <option key={b.id} value={b.id}>{b.name} {b.lastname}</option>
+              ))}
+            </select>
+          </div>
+
           <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs"
             style={{ background: 'var(--surface-2)', border: '1px solid var(--surface-border)', color: 'var(--text-secondary)' }}>
-            <User size={12} style={{ color: 'var(--text-muted)' }} />
-            <span>{appointment.barber_name}</span>
-            <span style={{ color: 'var(--text-muted)' }}>·</span>
             <Scissors size={12} style={{ color: 'var(--text-muted)' }} />
             <span>{appointment.service_name}</span>
             <span style={{ color: 'var(--text-muted)' }}>·</span>
