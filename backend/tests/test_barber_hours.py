@@ -1,6 +1,9 @@
 import pytest
 from datetime import date, datetime, timezone, time
 from decimal import Decimal
+from zoneinfo import ZoneInfo
+
+_TZ = ZoneInfo('America/Guayaquil')
 
 from app.models.barber import Barber
 from app.models.catalog import ServiceCatalog
@@ -137,11 +140,11 @@ def test_appointment_booking_collision_with_blocks(db, sample_data):
     )
     create_barber_hours(db, 1, 1, data)
 
-    # Attempt booking during blocked time (13:00 - 14:00, service is 60 min)
+    # Attempt booking during blocked time (13:00 - 14:00 Ecuador, service is 60 min)
     appt_in = AppointmentCreate(
         barber_id=1,
         service_id=1,
-        scheduled_at=datetime(2026, 6, 1, 13, 0, tzinfo=timezone.utc),
+        scheduled_at=datetime(2026, 6, 1, 13, 0, tzinfo=_TZ),
     )
     
     with pytest.raises(ValueError) as exc:

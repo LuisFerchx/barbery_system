@@ -2,6 +2,7 @@ import json
 from datetime import datetime, timedelta, timezone
 from math import ceil
 from typing import Optional, Tuple, List
+from zoneinfo import ZoneInfo
 
 from sqlalchemy.orm import Session, joinedload
 
@@ -123,17 +124,19 @@ def _parse_operating_days(operating_days: Optional[str]) -> Optional[set]:
 def _validate_schedule(company: Company, scheduled_at: datetime, end_at: datetime) -> None:
     """
     Validate that an appointment's start and end datetimes comply with the company's operating hours and allowed weekdays.
-    
+
     Parameters:
         company (Company): Company record whose `open_hour`, `close_hour`, and `operating_days` are used for validation.
         scheduled_at (datetime): Appointment start datetime.
         end_at (datetime): Appointment end datetime.
-    
+
     Raises:
         ValueError: If `scheduled_at` is outside `company.open_hour`–`company.close_hour`.
         ValueError: If `scheduled_at` falls on a weekday not listed in `company.operating_days`.
     """
-    appt_time = scheduled_at.time()
+    tz = ZoneInfo(getattr(company, 'timezone', None) or 'America/Guayaquil')
+    local_dt = scheduled_at.astimezone(tz)
+    appt_time = local_dt.time()
 
     if company.open_hour and company.close_hour:
         from datetime import time as dtime
@@ -148,7 +151,7 @@ def _validate_schedule(company: Company, scheduled_at: datetime, end_at: datetim
 
     allowed_days = _parse_operating_days(company.operating_days)
     if allowed_days is not None:
-        weekday = scheduled_at.weekday()
+        weekday = local_dt.weekday()
         if weekday not in allowed_days:
             raise ValueError("El día seleccionado no es un día de atención")
 
@@ -195,17 +198,19 @@ def _check_barber_block_conflict(
     barber_id: int,
     scheduled_at: datetime,
     end_at: datetime,
+    tz_str: str = 'America/Guayaquil',
 ) -> None:
     """
     Check whether the barber has any blocked intervals that overlap a proposed appointment time.
-    
+
     Raises:
         ValueError: If any blocked interval overlaps the [scheduled_at, end_at) window; message is "El barbero tiene un bloqueo de horario en ese momento".
     """
     from .barber_hours import get_blocked_intervals
 
-    target_date = scheduled_at.date()
-    blocked = get_blocked_intervals(db, company_id, barber_id, target_date)
+    local_dt = scheduled_at.astimezone(ZoneInfo(tz_str))
+    target_date = local_dt.date()
+    blocked = get_blocked_intervals(db, company_id, barber_id, target_date, tz_str=tz_str)
     for b_start, b_end in blocked:
         if scheduled_at < b_end and end_at > b_start:
             raise ValueError("El barbero tiene un bloqueo de horario en ese momento")
@@ -242,9 +247,12 @@ def get_appointments(
 
     if date:
         from datetime import date as ddate
+        company = db.query(Company).filter(Company.id == company_id).first()
+        tz_str = (company.timezone if company and company.timezone else None) or 'America/Guayaquil'
+        tz = ZoneInfo(tz_str)
         parsed = datetime.strptime(date, "%Y-%m-%d").date()
-        day_start = datetime(parsed.year, parsed.month, parsed.day, 0, 0, 0, tzinfo=timezone.utc)
-        day_end = datetime(parsed.year, parsed.month, parsed.day, 23, 59, 59, tzinfo=timezone.utc)
+        day_start = datetime(parsed.year, parsed.month, parsed.day, 0, 0, 0, tzinfo=tz)
+        day_end = datetime(parsed.year, parsed.month, parsed.day, 23, 59, 59, tzinfo=tz)
         q = q.filter(Appointment.scheduled_at >= day_start, Appointment.scheduled_at <= day_end)
     else:
         if date_from:
@@ -325,9 +333,10 @@ def create_appointment(db: Session, company_id: int, data: AppointmentCreate) ->
     end_at = scheduled_at + timedelta(minutes=duration)
 
     company = db.query(Company).filter(Company.id == company_id).first()
+    tz_str = (company.timezone if company and company.timezone else None) or 'America/Guayaquil'
     _validate_schedule(company, scheduled_at, end_at)
     _check_barber_conflict(db, company_id, data.barber_id, scheduled_at, end_at)
-    _check_barber_block_conflict(db, company_id, data.barber_id, scheduled_at, end_at)
+    _check_barber_block_conflict(db, company_id, data.barber_id, scheduled_at, end_at, tz_str=tz_str)
 
     initial_status = "confirmed" if company and company.auto_confirm_appointments else "pending"
     appt = Appointment(
@@ -416,9 +425,10 @@ def reschedule_appointment(
         effective_barber_id = data.barber_id
 
     company = db.query(Company).filter(Company.id == company_id).first()
+    tz_str = (company.timezone if company and company.timezone else None) or 'America/Guayaquil'
     _validate_schedule(company, scheduled_at, end_at)
     _check_barber_conflict(db, company_id, effective_barber_id, scheduled_at, end_at, exclude_id=appointment_id)
-    _check_barber_block_conflict(db, company_id, effective_barber_id, scheduled_at, end_at)
+    _check_barber_block_conflict(db, company_id, effective_barber_id, scheduled_at, end_at, tz_str=tz_str)
 
     appt.scheduled_at = scheduled_at
     appt.end_at = end_at

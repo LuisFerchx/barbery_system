@@ -72,6 +72,7 @@ export default function CitaModal({ open, onClose, mode, appointment, defaultDat
   const [clientId, setClientId] = useState('')
   const [date, setDate] = useState(defaultDate || localDayStr())
   const [time, setTime] = useState(defaultTime || '')
+  const [slotDatetime, setSlotDatetime] = useState<string | null>(null)
   const [notes, setNotes] = useState('')
   const [loading, setLoading] = useState(false)
   const [showShare, setShowShare] = useState(false)
@@ -122,6 +123,7 @@ export default function CitaModal({ open, onClose, mode, appointment, defaultDat
       setClientId('')
       setDate(defaultDate || localDayStr())
       setTime(defaultTime || '')
+      setSlotDatetime(null)
       setNotes('')
     }
     if (open && mode === 'reschedule' && appointment) {
@@ -189,12 +191,16 @@ export default function CitaModal({ open, onClose, mode, appointment, defaultDat
 
   useEffect(() => {
     if (displaySlots.length > 0) {
-      const exists = displaySlots.some(s => s.time === time)
-      if (!exists) {
+      const match = displaySlots.find(s => s.time === time)
+      if (!match) {
         setTime(displaySlots[0].time)
+        setSlotDatetime(displaySlots[0].datetime)
+      } else {
+        setSlotDatetime(match.datetime)
       }
     } else if (!loadingSlots) {
       setTime('')
+      setSlotDatetime(null)
     }
   }, [displaySlots, loadingSlots])
 
@@ -205,11 +211,7 @@ export default function CitaModal({ open, onClose, mode, appointment, defaultDat
     }
     setLoading(true)
     try {
-      const offsetMin = -new Date().getTimezoneOffset()
-      const sign = offsetMin >= 0 ? '+' : '-'
-      const offH = String(Math.floor(Math.abs(offsetMin) / 60)).padStart(2, '0')
-      const offM = String(Math.abs(offsetMin) % 60).padStart(2, '0')
-      const scheduled_at = `${date}T${time}:00${sign}${offH}:${offM}`
+      const scheduled_at = slotDatetime ?? `${date}T${time}:00`
       const result = await appointmentsApi.create({
         barber_id: Number(barberId),
         service_id: Number(serviceId),
@@ -233,11 +235,7 @@ export default function CitaModal({ open, onClose, mode, appointment, defaultDat
     if (!appointment || !date || !time) return
     setLoading(true)
     try {
-      const offsetMin = -new Date().getTimezoneOffset()
-      const sign = offsetMin >= 0 ? '+' : '-'
-      const offH = String(Math.floor(Math.abs(offsetMin) / 60)).padStart(2, '0')
-      const offM = String(Math.abs(offsetMin) % 60).padStart(2, '0')
-      const scheduled_at = `${date}T${time}:00${sign}${offH}:${offM}`
+      const scheduled_at = slotDatetime ?? `${date}T${time}:00`
       const payload: { scheduled_at: string; barber_id?: number } = { scheduled_at }
       if (rescheduleBarberIdState && Number(rescheduleBarberIdState) !== appointment.barber_id) {
         payload.barber_id = Number(rescheduleBarberIdState)
@@ -466,7 +464,7 @@ export default function CitaModal({ open, onClose, mode, appointment, defaultDat
                     <button
                       key={slot.time}
                       type="button"
-                      onClick={() => setTime(slot.time)}
+                      onClick={() => { setTime(slot.time); setSlotDatetime(slot.datetime) }}
                       className="py-2 rounded-xl text-xs font-semibold cursor-pointer transition-all duration-150 text-center"
                       style={{
                         background: isSelected ? 'var(--gold-400)' : 'var(--surface-2)',
@@ -575,7 +573,7 @@ export default function CitaModal({ open, onClose, mode, appointment, defaultDat
                     <button
                       key={slot.time}
                       type="button"
-                      onClick={() => setTime(slot.time)}
+                      onClick={() => { setTime(slot.time); setSlotDatetime(slot.datetime) }}
                       className="py-2 rounded-xl text-xs font-semibold cursor-pointer transition-all duration-150 text-center"
                       style={{
                         background: isSelected ? 'var(--gold-400)' : 'var(--surface-2)',

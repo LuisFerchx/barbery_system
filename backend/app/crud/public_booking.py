@@ -2,6 +2,7 @@ import secrets
 import string
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional
+from zoneinfo import ZoneInfo
 
 from sqlalchemy.orm import Session, joinedload, selectinload
 
@@ -101,8 +102,10 @@ def get_available_slots(
     open_h, open_m = map(int, company.open_hour.split(":"))
     close_h, close_m = map(int, company.close_hour.split(":"))
 
-    day_start = datetime(parsed_date.year, parsed_date.month, parsed_date.day, 0, 0, 0, tzinfo=timezone.utc)
-    day_end = datetime(parsed_date.year, parsed_date.month, parsed_date.day, 23, 59, 59, tzinfo=timezone.utc)
+    tz = ZoneInfo(company.timezone or 'America/Guayaquil')
+
+    day_start = datetime(parsed_date.year, parsed_date.month, parsed_date.day, 0, 0, 0, tzinfo=tz)
+    day_end = datetime(parsed_date.year, parsed_date.month, parsed_date.day, 23, 59, 59, tzinfo=tz)
 
     existing = (
         db.query(Appointment)
@@ -116,11 +119,11 @@ def get_available_slots(
         .all()
     )
 
-    open_dt = datetime(parsed_date.year, parsed_date.month, parsed_date.day, open_h, open_m, tzinfo=timezone.utc)
-    close_dt = datetime(parsed_date.year, parsed_date.month, parsed_date.day, close_h, close_m, tzinfo=timezone.utc)
+    open_dt = datetime(parsed_date.year, parsed_date.month, parsed_date.day, open_h, open_m, tzinfo=tz)
+    close_dt = datetime(parsed_date.year, parsed_date.month, parsed_date.day, close_h, close_m, tzinfo=tz)
 
     from .barber_hours import get_blocked_intervals
-    blocked_intervals = get_blocked_intervals(db, company.id, barber_id, parsed_date)
+    blocked_intervals = get_blocked_intervals(db, company.id, barber_id, parsed_date, tz_str=company.timezone or 'America/Guayaquil')
 
     slots: List[SlotOut] = []
     current = open_dt
