@@ -71,7 +71,7 @@ function isoDate(d: Date) {
  */
 function fmtTime(iso: string) {
   const d = new Date(iso)
-  return `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
 }
 
 /**
@@ -83,7 +83,7 @@ function fmtTime(iso: string) {
  */
 function apptTopPx(iso: string, hourHeight: number = HOUR_HEIGHT): number {
   const d = new Date(iso)
-  const mins = d.getUTCHours() * 60 + d.getUTCMinutes() - START_HOUR * 60
+  const mins = d.getHours() * 60 + d.getMinutes() - START_HOUR * 60
   return Math.max(0, (mins / 60) * hourHeight)
 }
 
@@ -202,7 +202,7 @@ function computePositionedAppointments(dayAppts: Appointment[]): PositionedAppoi
  */
 function TodayLine({ hourHeight = HOUR_HEIGHT }: { hourHeight?: number }) {
   const now = new Date()
-  const mins = now.getUTCHours() * 60 + now.getUTCMinutes() - START_HOUR * 60
+  const mins = now.getHours() * 60 + now.getMinutes() - START_HOUR * 60
   const top = (mins / 60) * hourHeight
   if (top < 0 || top > (END_HOUR - START_HOUR) * hourHeight) return null
   return (
@@ -291,7 +291,7 @@ export default function CitasCalendar() {
   const byDate = useMemo(() =>
     appointments.reduce<Record<string, Appointment[]>>((acc, a) => {
       const d = new Date(a.scheduled_at)
-      const key = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
         ; (acc[key] ??= []).push(a)
       return acc
     }, {}),

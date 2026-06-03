@@ -27,6 +27,7 @@ class CompanyUpdate(BaseModel):
     open_hour: Optional[str] = None
     close_hour: Optional[str] = None
     operating_days: Optional[str] = None
+    timezone: Optional[str] = None
 
 
 class CompanyOut(CompanyBase):
@@ -35,6 +36,7 @@ class CompanyOut(CompanyBase):
     open_hour: Optional[str] = None
     close_hour: Optional[str] = None
     operating_days: Optional[str] = None
+    timezone: Optional[str] = 'America/Guayaquil'
     logo_url: Optional[str] = None
     created_at: datetime
 

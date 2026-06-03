@@ -1,4 +1,5 @@
 from datetime import date as ddate, datetime, timezone, timedelta
+from zoneinfo import ZoneInfo
 from typing import List, Tuple, Optional
 from sqlalchemy.orm import Session
 
@@ -105,7 +106,8 @@ def delete_barber_hours(db: Session, company_id: int, hours_id: int) -> Optional
 
 
 def get_blocked_intervals(
-    db: Session, company_id: int, barber_id: int, target_date: ddate
+    db: Session, company_id: int, barber_id: int, target_date: ddate,
+    tz_str: str = 'America/Guayaquil',
 ) -> List[Tuple[datetime, datetime]]:
     """
     Compute blocked time intervals for a barber on a specific date and return them as UTC-aware datetimes.
@@ -158,13 +160,14 @@ def get_blocked_intervals(
             sh, sm = map(int, bh.start_time.split(":"))
             eh, em = map(int, bh.end_time.split(":"))
 
+            tz = ZoneInfo(tz_str)
             start_dt = datetime(
                 target_date.year,
                 target_date.month,
                 target_date.day,
                 sh,
                 sm,
-                tzinfo=timezone.utc,
+                tzinfo=tz,
             )
             end_dt = datetime(
                 target_date.year,
@@ -172,7 +175,7 @@ def get_blocked_intervals(
                 target_date.day,
                 eh,
                 em,
-                tzinfo=timezone.utc,
+                tzinfo=tz,
             )
 
             if start_dt < end_dt:

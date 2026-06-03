@@ -16,5 +16,6 @@ class Company(Base):
     open_hour      = Column(String(5),  nullable=True)
     close_hour     = Column(String(5),  nullable=True)
     operating_days = Column(String(27), nullable=True)
+    timezone       = Column(String(50), nullable=True, default='America/Guayaquil')
     logo_url = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

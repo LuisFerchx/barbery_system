@@ -71,7 +71,7 @@ function isoDate(d: Date) {
  */
 function fmtTime(iso: string) {
   const d = new Date(iso)
-  return `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
 }
 
 /**
@@ -196,34 +196,15 @@ export default function CitasCalendarDiario() {
     loadData()
   }, [loadData])
 
-  // Convert appointment schedule times into local timezone-safe equivalents matching their UTC numbers
   const events = useMemo(() => {
-    return appointments.map((a) => {
-      const dStart = new Date(a.scheduled_at)
-      const dEnd = new Date(a.end_at)
-      return {
-        id: a.id,
-        title: a.client_name || '(Sin cliente)',
-        start: new Date(
-          dStart.getUTCFullYear(),
-          dStart.getUTCMonth(),
-          dStart.getUTCDate(),
-          dStart.getUTCHours(),
-          dStart.getUTCMinutes(),
-          0
-        ),
-        end: new Date(
-          dEnd.getUTCFullYear(),
-          dEnd.getUTCMonth(),
-          dEnd.getUTCDate(),
-          dEnd.getUTCHours(),
-          dEnd.getUTCMinutes(),
-          0
-        ),
-        resourceId: a.barber_id,
-        appointment: a,
-      }
-    })
+    return appointments.map((a) => ({
+      id: a.id,
+      title: a.client_name || '(Sin cliente)',
+      start: new Date(a.scheduled_at),
+      end: new Date(a.end_at),
+      resourceId: a.barber_id,
+      appointment: a,
+    }))
   }, [appointments])
 
   const prev = () => setCurrentDate((d) => subDays(d, 1))
