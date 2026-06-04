@@ -59,8 +59,13 @@ export default function SalesHistory() {
 
   const load = useCallback(() => {
     setLoading(true)
-    const date_from = `${date}T00:00:00`
-    const date_to = `${date}T23:59:59`
+    const offsetMin = -new Date().getTimezoneOffset()
+    const sign = offsetMin >= 0 ? '+' : '-'
+    const offH = String(Math.floor(Math.abs(offsetMin) / 60)).padStart(2, '0')
+    const offM = String(Math.abs(offsetMin) % 60).padStart(2, '0')
+    const tz = `${sign}${offH}:${offM}`
+    const date_from = `${date}T00:00:00${tz}`
+    const date_to = `${date}T23:59:59${tz}`
     const params: Record<string, unknown> = { page, page_size: 20, date_from, date_to }
     if (barberId) params.barber_id = parseInt(barberId)
     salesApi.list(params)
